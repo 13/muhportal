@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">muhportal</string>
+    <string name="portal_title">Portal</string>
+    <string name="haustuer">Haustür</string>
+    <string name="garagentuer">Garagentür</string>
+    <string name="garage">Garage</string>
+    <string name="geschlossen">GESCHLOSSEN</string>
+    <string name="entriegelt">ENTRIEGELT</string>
+    <string name="verriegelt">VERRIEGELT</string>
+    <string name="menu_content_description">Menu</string>
+    <string name="lock_content_description">Lock</string>
+</resources>
