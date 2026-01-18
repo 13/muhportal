@@ -1,57 +1,89 @@
 package com.muhstudio.muhportal
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.MeetingRoom
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.muhstudio.muhportal.ui.theme.MuhportalTheme
+import kotlinx.coroutines.launch
+
+enum class PortalGroup { HAUSTUER, GARAGENTUER, GARAGE }
 
 @Composable
-fun PortalScreen(modifier: Modifier = Modifier) {
+fun PortalScreen(
+    connState: ConnState,
+    portalStates: Map<String, PortalUpdate>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    onToggle: (String) -> Unit,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
+    var selectedGroup by remember { mutableStateOf<PortalGroup?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        TopBar()
-        TitleBar()
-        HorizontalDivider(color = Color(0xFF4CAF50), thickness = 4.dp)
-        PortalContent()
+        TitleBar(connState, onRefresh)
+        HorizontalDivider(
+            color = when (connState) {
+                ConnState.CONNECTED -> Color(0xFF4CAF50)
+                ConnState.CONNECTING -> Color.Yellow
+                ConnState.DISCONNECTED -> Color.Red
+            },
+            thickness = 4.dp
+        )
+        
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
+            PortalContent(portalStates, onGroupClick = { selectedGroup = it })
+        }
     }
-}
 
-@Composable
-private fun TopBar() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.Black)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Icon(
-            painter = painterResource(id = android.R.drawable.ic_menu_sort_by_size),
-            contentDescription = stringResource(R.string.menu_content_description),
-            tint = Color.White,
-            modifier = Modifier.size(24.dp)
+    selectedGroup?.let { group ->
+        PortalActionDialog(
+            group = group,
+            portalStates = portalStates,
+            onDismiss = { selectedGroup = null },
+            onToggle = onToggle,
+            snackbarHostState = snackbarHostState
         )
     }
 }
 
 @Composable
-private fun TitleBar() {
+private fun TitleBar(connState: ConnState, onRefresh: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -62,51 +94,88 @@ private fun TitleBar() {
         Icon(
             painter = painterResource(id = android.R.drawable.ic_lock_idle_lock),
             contentDescription = stringResource(R.string.lock_content_description),
-            tint = Color.Gray,
+            tint = when (connState) {
+                ConnState.CONNECTED -> Color.Gray
+                else -> Color.LightGray
+            },
             modifier = Modifier.size(28.dp)
         )
         Spacer(modifier = Modifier.width(32.dp))
         Text(
             text = stringResource(R.string.portal_title),
             fontSize = 24.sp,
-            color = Color.Black
+            color = Color.Black,
+            modifier = Modifier.weight(1f)
         )
+        IconButton(onClick = onRefresh) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Refresh",
+                tint = Color.Black
+            )
+        }
     }
 }
 
 @Composable
-private fun PortalContent() {
+private fun PortalContent(
+    portalStates: Map<String, PortalUpdate>,
+    onGroupClick: (PortalGroup) -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 16.dp)
     ) {
         item {
+            val hd = portalStates["HD"]
+            val hdl = portalStates["HDL"]
             PortalSection(
                 title = stringResource(R.string.haustuer),
-                times = listOf("14:13", "09:54"),
+                updates = listOfNotNull(hd, hdl),
                 rows = listOf(
-                    StatusRowData(stringResource(R.string.geschlossen), Color.Red),
-                    StatusRowData(stringResource(R.string.entriegelt), Color(0xFF4CAF50))
-                )
+                    StatusRowData(
+                        text = if (hd?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
+                        color = if (hd?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                    ),
+                    StatusRowData(
+                        text = if (hdl?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
+                        color = if (hdl?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                    )
+                ),
+                onClick = { onGroupClick(PortalGroup.HAUSTUER) }
             )
         }
         item {
+            val gd = portalStates["GD"]
+            val gdl = portalStates["GDL"]
             PortalSection(
                 title = stringResource(R.string.garagentuer),
-                times = listOf("16.01. 07:50", "16.01. 08:00"),
+                updates = listOfNotNull(gd, gdl),
                 rows = listOf(
-                    StatusRowData(stringResource(R.string.geschlossen), Color.Red),
-                    StatusRowData(stringResource(R.string.verriegelt), Color.Red)
-                )
+                    StatusRowData(
+                        text = if (gd?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
+                        color = if (gd?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                    ),
+                    StatusRowData(
+                        text = if (gdl?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
+                        color = if (gdl?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                    )
+                ),
+                onClick = { onGroupClick(PortalGroup.GARAGENTUER) }
             )
         }
         item {
+            val g = portalStates["G"]
             PortalSection(
                 title = stringResource(R.string.garage),
-                times = listOf("09:53"),
+                updates = listOfNotNull(g),
                 rows = listOf(
-                    StatusRowData(stringResource(R.string.geschlossen), Color.Red)
-                )
+                    StatusRowData(
+                        text = if (g?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
+                        color = if (g?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                    )
+                ),
+                onClick = { onGroupClick(PortalGroup.GARAGE) }
             )
         }
     }
@@ -115,12 +184,25 @@ private fun PortalContent() {
 @Composable
 private fun PortalSection(
     title: String,
-    times: List<String>,
-    rows: List<StatusRowData>
+    updates: List<PortalUpdate>,
+    rows: List<StatusRowData>,
+    onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.98f else 1f, label = "scale")
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current
+            ) { onClick() }
             .padding(bottom = 24.dp)
     ) {
         Row(
@@ -136,8 +218,8 @@ private fun PortalSection(
                 color = Color.LightGray
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                times.forEach { time ->
-                    TimeBadge(time)
+                updates.forEach { update ->
+                    TimeBadge(formatTime(update.timestamp))
                 }
             }
         }
@@ -183,12 +265,260 @@ private fun TimeBadge(time: String) {
     }
 }
 
+@Composable
+private fun PortalActionDialog(
+    group: PortalGroup,
+    portalStates: Map<String, PortalUpdate>,
+    onDismiss: () -> Unit,
+    onToggle: (String) -> Unit,
+    snackbarHostState: SnackbarHostState
+) {
+    val scope = rememberCoroutineScope()
+    val groupName = when (group) {
+        PortalGroup.HAUSTUER -> stringResource(R.string.haustuer)
+        PortalGroup.GARAGENTUER -> stringResource(R.string.garagentuer)
+        PortalGroup.GARAGE -> stringResource(R.string.garage)
+    }
+
+    Dialog(
+        onDismissRequest = { },
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Card(
+            shape = RoundedCornerShape(4.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFE0E0E0))
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = groupName,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Status Section - Centered block, left-aligned content
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            when (group) {
+                                PortalGroup.HAUSTUER, PortalGroup.GARAGENTUER -> {
+                                    val prefix = if (group == PortalGroup.HAUSTUER) "HD" else "GD"
+                                    val door = portalStates[prefix]
+                                    val lock = portalStates[prefix + "L"]
+                                    
+                                    StatusItem(
+                                        text = if (door?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
+                                        color = if (door?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                                    )
+                                    StatusItem(
+                                        text = if (lock?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
+                                        color = if (lock?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                                    )
+                                }
+                                PortalGroup.GARAGE -> {
+                                    val g = portalStates["G"]
+                                    StatusItem(
+                                        text = if (g?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
+                                        color = if (g?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Actions
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        when (group) {
+                            PortalGroup.HAUSTUER, PortalGroup.GARAGENTUER -> {
+                                val prefix = if (group == PortalGroup.HAUSTUER) "HDL" else "GDL"
+                                val oeffnenText = stringResource(R.string.oeffnen)
+                                val entriegelnText = stringResource(R.string.entriegeln)
+                                val verriegelnText = stringResource(R.string.verriegeln)
+
+                                ActionButton(
+                                    text = oeffnenText,
+                                    icon = Icons.Default.MeetingRoom,
+                                    onClick = { 
+                                        onToggle("${prefix}_O")
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("$groupName $oeffnenText")
+                                        }
+                                    }
+                                )
+                                ActionButton(
+                                    text = entriegelnText,
+                                    icon = Icons.Default.LockOpen,
+                                    onClick = { 
+                                        onToggle("${prefix}_U")
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("$groupName $entriegelnText")
+                                        }
+                                    }
+                                )
+                                ActionButton(
+                                    text = verriegelnText,
+                                    icon = Icons.Default.Lock,
+                                    onClick = { 
+                                        onToggle("${prefix}_L")
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("$groupName $verriegelnText")
+                                        }
+                                    }
+                                )
+                            }
+                            PortalGroup.GARAGE -> {
+                                val bewegenText = stringResource(R.string.bewegen)
+                                ActionButton(
+                                    text = bewegenText,
+                                    icon = Icons.Default.SwapVert,
+                                    onClick = { 
+                                        onToggle("G_T")
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("$groupName $bewegenText")
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Cancel Button
+                    val cancelInteractionSource = remember { MutableInteractionSource() }
+                    val isCancelPressed by cancelInteractionSource.collectIsPressedAsState()
+                    val cancelScale by animateFloatAsState(if (isCancelPressed) 0.96f else 1f, label = "scale")
+                    
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .graphicsLayer {
+                                scaleX = cancelScale
+                                scaleY = cancelScale
+                            },
+                        interactionSource = cancelInteractionSource,
+                        shape = RoundedCornerShape(4.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF212121)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.abbrechen),
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusItem(text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(color, RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+    }
+}
+
+@Composable
+private fun ActionButton(
+    text: String,
+    icon: ImageVector? = null,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
+
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(4.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF5F5F5)),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                Icon(imageVector = icon, contentDescription = null, tint = Color.Black, modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(text = text, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
 private data class StatusRowData(val text: String, val color: Color)
 
 @Preview(showBackground = true)
 @Composable
 fun PortalScreenPreview() {
     MuhportalTheme {
-        PortalScreen()
+        PortalScreen(
+            connState = ConnState.CONNECTED,
+            portalStates = emptyMap(),
+            isRefreshing = false,
+            onRefresh = {},
+            onToggle = {},
+            snackbarHostState = SnackbarHostState()
+        )
     }
 }

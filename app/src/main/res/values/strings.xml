@@ -5,8 +5,14 @@
     <string name="garagentuer">Garagentür</string>
     <string name="garage">Garage</string>
     <string name="geschlossen">GESCHLOSSEN</string>
+    <string name="offen">OFFEN</string>
     <string name="entriegelt">ENTRIEGELT</string>
     <string name="verriegelt">VERRIEGELT</string>
     <string name="menu_content_description">Menu</string>
     <string name="lock_content_description">Lock</string>
+    <string name="bewegen">BEWEGEN</string>
+    <string name="abbrechen">ABBRECHEN</string>
+    <string name="oeffnen">ÖFFNEN</string>
+    <string name="entriegeln">ENTRIEGELN</string>
+    <string name="verriegeln">VERRIEGELN</string>
 </resources>

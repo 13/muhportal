@@ -5,14 +5,12 @@ plugins {
 
 android {
     namespace = "com.muhstudio.muhportal"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.muhstudio.muhportal"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -46,11 +44,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
 
-    // >>> PUT THESE TWO LINES HERE (anywhere inside dependencies is fine)
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
     implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
-    // <<<
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
