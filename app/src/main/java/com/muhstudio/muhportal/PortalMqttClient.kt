@@ -17,28 +17,33 @@ data class PortalUpdate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class WolUpdate(
+    val id: String,
+    val name: String,
+    val ip: String,
+    val mac: String,
+    val alive: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class GarageMqttClient(
     context: Context,
     private val onConnState: (ConnState) -> Unit,
     private val onPortalUpdate: (PortalUpdate) -> Unit,
+    private val onWolUpdate: (WolUpdate) -> Unit,
 ) {
     private val serverUri = "ws://192.168.22.5:1884"
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
     private val persistence = MemoryPersistence()
     private val client = MqttAsyncClient(serverUri, clientId, persistence)
 
-    // Portal configurations: Map of suffix to display name
-    private val portals = mapOf(
-        "G" to "Garage",
-        "GD" to "Garage Door",
-        "GDL" to "Garage Door Lock",
-        "HD" to "House Door",
-        "HDL" to "House Door Lock"
-    )
-
-    private val topicPrefix = "muh/portal/"
-    private val topicSuffix = "/json"
+    private val portalTopicPrefix = "muh/portal/"
+    private val wolTopicPrefix = "muh/pc/"
+    private val portalTopicSuffix = "/json"
+    
     private val topicToggleTopic = "muh/portal/RLY/cmnd"
+    private val wolWakeTopic = "muh/wol"
+    private val wolShutdownTopic = "muh/poweroff"
 
     fun connect() {
         if (client.isConnected) return
@@ -49,9 +54,8 @@ class GarageMqttClient(
             override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                 onConnState(ConnState.CONNECTED)
                 try {
-                    portals.keys.forEach { key ->
-                        client.subscribe("$topicPrefix$key$topicSuffix", 0)
-                    }
+                    client.subscribe("muh/portal/+/json", 0)
+                    client.subscribe("muh/pc/+", 0)
                 } catch (e: MqttException) {
                     e.printStackTrace()
                 }
@@ -63,11 +67,14 @@ class GarageMqttClient(
 
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 if (topic != null && message != null) {
-                    val key = topic.removePrefix(topicPrefix).removeSuffix(topicSuffix)
-                    if (portals.containsKey(key)) {
-                        val payload = message.payload.toString(StandardCharsets.UTF_8)
-                        parsePortalUpdate(key, payload)?.let { update ->
-                            onPortalUpdate(update)
+                    val payload = message.payload.toString(StandardCharsets.UTF_8)
+                    if (topic.startsWith(portalTopicPrefix)) {
+                        val key = topic.removePrefix(portalTopicPrefix).removeSuffix(portalTopicSuffix)
+                        parsePortalUpdate(key, payload)?.let { onPortalUpdate(it) }
+                    } else if (topic.startsWith(wolTopicPrefix)) {
+                        val key = topic.removePrefix(wolTopicPrefix)
+                        if (key != "cmnd") {
+                            parseWolUpdate(key, payload)?.let { onWolUpdate(it) }
                         }
                     }
                 }
@@ -116,24 +123,23 @@ class GarageMqttClient(
         }.start()
     }
 
-    fun toggle(key: String) {
-        if (!client.isConnected) {
-            connect()
-            return
-        }
-        val command = when(key) {
-            "G", "G_T" -> "G_T"
-            "GDL_O" -> "GD_O"
-            "GDL_U" -> "GD_U"
-            "GDL_L" -> "GD_L"
-            "HDL_O" -> "HD_O"
-            "HDL_U" -> "HD_U"
-            "HDL_L" -> "HD_L"
-            else -> return
-        }
+    fun toggle(command: String) {
+        if (!client.isConnected) return
         val msg = MqttMessage(command.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
         try {
             client.publish(topicToggleTopic, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun wolAction(mac: String, action: String) {
+        if (!client.isConnected) return
+        val topic = if (action == "WAKE") wolWakeTopic else wolShutdownTopic
+        val payload = org.json.JSONObject().apply { put("mac", mac) }.toString()
+        val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
+        try {
+            client.publish(topic, msg)
         } catch (e: MqttException) {
             e.printStackTrace()
         }
@@ -148,53 +154,50 @@ class GarageMqttClient(
                 1 -> DoorState.CLOSED
                 else -> return null
             }
-
-            var timestamp = System.currentTimeMillis()
-            val timeKeys = listOf("time", "Time", "timestamp", "ts")
-            for (tk in timeKeys) {
-                if (json.has(tk)) {
-                    val timeValue = json.getString(tk)
-                    val parsed = tryParseTime(timeValue)
-                    if (parsed != null) {
-                        timestamp = parsed
-                        break
-                    }
-                }
-            }
-            PortalUpdate(key, state, timestamp)
+            PortalUpdate(key, state, tryParseTime(json) ?: System.currentTimeMillis())
         } catch (e: Exception) {
-            // Fallback for non-JSON or missing fields
-            val s = jsonStr.replace(" ", "")
-            val state = when {
-                s.contains("\"state\":0") -> DoorState.OPEN
-                s.contains("\"state\":1") -> DoorState.CLOSED
-                else -> return null
+            null
+        }
+    }
+
+    private fun parseWolUpdate(key: String, jsonStr: String): WolUpdate? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            WolUpdate(
+                id = key,
+                name = json.getString("name"),
+                ip = json.getString("ip"),
+                mac = json.getString("mac"),
+                alive = json.getBoolean("alive"),
+                timestamp = tryParseTime(json) ?: System.currentTimeMillis()
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun tryParseTime(json: org.json.JSONObject): Long? {
+        val timeKeys = listOf("timestamp", "time", "Time", "ts", "last_seen")
+        for (tk in timeKeys) {
+            if (json.has(tk)) {
+                val timeStr = json.getString(tk)
+                val formats = listOf(
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss",
+                    "yyyy-MM-dd HH:mm:ss", "dd.MM.yyyy HH:mm:ss"
+                )
+                for (fmt in formats) {
+                    try {
+                        val sdf = SimpleDateFormat(fmt, Locale.getDefault())
+                        if (fmt.endsWith("'Z'")) {
+                            sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                        }
+                        return sdf.parse(timeStr)?.time
+                    } catch (e: Exception) {}
+                }
+                timeStr.toLongOrNull()?.let { return if (it < 10000000000L) it * 1000 else it }
             }
-            PortalUpdate(key, state, System.currentTimeMillis())
         }
+        return null
     }
-
-    private fun tryParseTime(timeStr: String): Long? {
-        val formats = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy/MM/dd HH:mm:ss",
-            "HH:mm:ss dd.MM.yyyy",
-            "dd.MM.yyyy HH:mm:ss"
-        )
-        for (fmt in formats) {
-            try {
-                return SimpleDateFormat(fmt, Locale.getDefault()).parse(timeStr)?.time
-            } catch (e: Exception) {}
-        }
-        return timeStr.toLongOrNull()?.let {
-            if (it < 10000000000L) it * 1000 else it
-        }
-    }
-
-    fun getPortalName(key: String) = portals[key] ?: key
-    fun getPortalKeys() = portals.keys.toList()
 }
