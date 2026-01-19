@@ -14,8 +14,9 @@ An Android application built with Kotlin to monitor and control various portals 
 ## Screenshots
 
 <p align="center">
-  <img src="assets/screenshot1.png" width="300" />
-  <img src="assets/screenshot2.png" width="300" />
+  <img src="assets/screenshot1.png" width="200" />
+  <img src="assets/screenshot2.png" width="200" />
+  <img src="assets/screenshot3.png" width="200" />
 </p>
 
 ## Technical Specifications
