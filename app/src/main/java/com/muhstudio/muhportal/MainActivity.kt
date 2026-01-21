@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.muhstudio.muhportal.ui.theme.MuhportalTheme
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,7 +33,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             MuhportalTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
-                var currentTab by remember { mutableStateOf(0) }
+                val scope = rememberCoroutineScope()
+                val pagerState = rememberPagerState(pageCount = { 3 })
                 
                 Box(modifier = Modifier.fillMaxSize()) {
                     Scaffold(
@@ -41,8 +45,8 @@ class MainActivity : ComponentActivity() {
                                 tonalElevation = 8.dp
                             ) {
                                 NavigationBarItem(
-                                    selected = currentTab == 0,
-                                    onClick = { currentTab = 0 },
+                                    selected = pagerState.currentPage == 0,
+                                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                                     icon = { Icon(Icons.Default.Lock, contentDescription = "Portal") },
                                     label = { Text("Portal") },
                                     colors = NavigationBarItemDefaults.colors(
@@ -54,8 +58,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 )
                                 NavigationBarItem(
-                                    selected = currentTab == 1,
-                                    onClick = { currentTab = 1 },
+                                    selected = pagerState.currentPage == 1,
+                                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
                                     icon = { Icon(Icons.Default.Lan, contentDescription = "WOL") },
                                     label = { Text("WOL") },
                                     colors = NavigationBarItemDefaults.colors(
@@ -67,8 +71,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 )
                                 NavigationBarItem(
-                                    selected = currentTab == 2,
-                                    onClick = { currentTab = 2 },
+                                    selected = pagerState.currentPage == 2,
+                                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
                                     icon = { Icon(Icons.Default.Lightbulb, contentDescription = "HA") },
                                     label = { Text("HA") },
                                     colors = NavigationBarItemDefaults.colors(
@@ -102,8 +106,11 @@ class MainActivity : ComponentActivity() {
                             onDispose { if (!isPreview) mqtt.disconnect() }
                         }
 
-                        Box(modifier = Modifier.padding(innerPadding)) {
-                            when (currentTab) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.padding(innerPadding).fillMaxSize()
+                        ) { page ->
+                            when (page) {
                                 0 -> PortalScreen(
                                     connState = connState,
                                     portalStates = portalStates,
