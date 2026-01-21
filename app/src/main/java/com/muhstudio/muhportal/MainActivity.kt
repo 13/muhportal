@@ -145,8 +145,12 @@ class MainActivity : ComponentActivity() {
 }
 
 fun formatTime(timestamp: Long): String {
-    val now = System.currentTimeMillis()
-    val diff = now - timestamp
-    val pattern = if (diff < 24 * 60 * 60 * 1000L) "HH:mm" else "dd.MM. HH:mm"
+    val now = Calendar.getInstance()
+    val time = Calendar.getInstance().apply { timeInMillis = timestamp }
+    
+    val isSameDay = now.get(Calendar.YEAR) == time.get(Calendar.YEAR) &&
+                    now.get(Calendar.DAY_OF_YEAR) == time.get(Calendar.DAY_OF_YEAR)
+    
+    val pattern = if (isSameDay) "HH:mm" else "dd.MM. HH:mm"
     return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(timestamp))
 }
