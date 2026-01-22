@@ -1,7 +1,9 @@
 package com.muhstudio.muhportal
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -30,11 +32,34 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        
         setContent {
+            val context = LocalContext.current
+            val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
             val systemDark = isSystemInDarkTheme()
-            var isDarkMode by remember { mutableStateOf(systemDark) }
+            var isDarkMode by remember { 
+                mutableStateOf(prefs.getBoolean("dark_mode", systemDark)) 
+            }
             var showSettings by remember { mutableStateOf(false) }
+
+            DisposableEffect(isDarkMode) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(
+                        android.graphics.Color.TRANSPARENT,
+                        android.graphics.Color.TRANSPARENT
+                    ) { isDarkMode },
+                    navigationBarStyle = SystemBarStyle.auto(
+                        android.graphics.Color.argb(0xe6, 0xFF, 0xFF, 0xFF),
+                        android.graphics.Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+                    ) { isDarkMode }
+                )
+                onDispose {}
+            }
+
+            val updateDarkMode: (Boolean) -> Unit = { newValue ->
+                isDarkMode = newValue
+                prefs.edit().putBoolean("dark_mode", newValue).apply()
+            }
 
             MuhportalTheme(darkTheme = isDarkMode) {
                 val snackbarHostState = remember { SnackbarHostState() }
@@ -57,13 +82,13 @@ class MainActivity : ComponentActivity() {
                             BackHandler { showSettings = false }
                             SettingsScreen(
                                 isDarkMode = isDarkMode,
-                                onDarkModeChange = { isDarkMode = it },
+                                onDarkModeChange = updateDarkMode,
                                 onBack = { showSettings = false }
                             )
                         } else {
                             MainContent(
                                 isDarkMode = isDarkMode,
-                                onDarkModeChange = { isDarkMode = it },
+                                onDarkModeChange = updateDarkMode,
                                 onOpenSettings = { showSettings = true },
                                 snackbarHostState = snackbarHostState
                             )
