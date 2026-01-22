@@ -84,7 +84,10 @@ fun WolScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(top = 16.dp)
             ) {
-                items(wolStates.values.toList().sortedBy { it.name }) { wol ->
+                items(
+                    wolStates.values.toList()
+                        .sortedWith(compareBy<WolUpdate> { it.priority }.thenBy { it.name })
+                ) { wol ->
                     WolItem(wol, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
                 }
             }

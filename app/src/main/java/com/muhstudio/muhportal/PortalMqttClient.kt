@@ -23,6 +23,7 @@ data class WolUpdate(
     val ip: String,
     val mac: String,
     val alive: Boolean,
+    val priority: Int = 99,
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -169,6 +170,7 @@ class GarageMqttClient(
                 ip = json.getString("ip"),
                 mac = json.getString("mac"),
                 alive = json.getBoolean("alive"),
+                priority = if (json.has("priority")) json.getInt("priority") else 99,
                 timestamp = tryParseTime(json) ?: System.currentTimeMillis()
             )
         } catch (e: Exception) {
