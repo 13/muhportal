@@ -6,16 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HAScreen(
     connState: ConnState,
@@ -25,6 +27,9 @@ fun HAScreen(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -47,11 +52,24 @@ fun HAScreen(
             },
             thickness = 4.dp
         )
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    isRefreshing = true
+                    onRefresh()
+                    delay(1000)
+                    isRefreshing = false
+                }
+            },
+            modifier = Modifier.weight(1f)
         ) {
-            Text(text = "HA Screen", fontSize = 24.sp, color = Color.Gray)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "HA Screen", fontSize = 24.sp, color = Color.Gray)
+            }
         }
     }
 }

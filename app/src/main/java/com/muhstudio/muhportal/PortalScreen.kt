@@ -14,6 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,10 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class PortalGroup { HAUSTUER, GARAGENTUER, GARAGE }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortalScreen(
     connState: ConnState,
@@ -42,6 +46,8 @@ fun PortalScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedGroup by remember { mutableStateOf<PortalGroup?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
@@ -62,7 +68,16 @@ fun PortalScreen(
             thickness = 4.dp
         )
         
-        Box(
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    isRefreshing = true
+                    onRefresh()
+                    delay(1000) // Visual feedback
+                    isRefreshing = false
+                }
+            },
             modifier = Modifier.weight(1f)
         ) {
             PortalContent(portalStates, onGroupClick = { selectedGroup = it })

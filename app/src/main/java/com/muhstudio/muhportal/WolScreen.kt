@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,8 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WolScreen(
     connState: ConnState,
@@ -43,6 +46,8 @@ fun WolScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedWol by remember { mutableStateOf<WolUpdate?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
@@ -63,12 +68,25 @@ fun WolScreen(
             thickness = 4.dp
         )
         
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(top = 16.dp)
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    isRefreshing = true
+                    onRefresh()
+                    delay(1000)
+                    isRefreshing = false
+                }
+            },
+            modifier = Modifier.weight(1f)
         ) {
-            items(wolStates.values.toList().sortedBy { it.name }) { wol ->
-                WolItem(wol, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 16.dp)
+            ) {
+                items(wolStates.values.toList().sortedBy { it.name }) { wol ->
+                    WolItem(wol, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
+                }
             }
         }
     }
