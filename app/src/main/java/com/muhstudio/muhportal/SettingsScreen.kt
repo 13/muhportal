@@ -5,9 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -18,6 +19,15 @@ fun SettingsScreen(
     onDarkModeChange: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val versionName = remember(context) {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,7 +68,7 @@ fun SettingsScreen(
             HorizontalDivider()
             
             // Add more settings here if needed
-            Text("Version 2.1", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Version $versionName", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
