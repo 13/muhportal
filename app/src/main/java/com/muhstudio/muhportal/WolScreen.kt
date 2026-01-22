@@ -158,8 +158,8 @@ private fun WolActionDialog(
 ) {
     val scope = rememberCoroutineScope()
     Dialog(
-        onDismissRequest = { },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
     ) {
         Card(
             shape = RoundedCornerShape(4.dp),
@@ -185,6 +185,7 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "WAKE")
                             scope.launch { snackbarHostState.showSnackbar("Wake ${wol.name.substringBefore('.')}") }
+                            onDismiss()
                         }
                     )
                     ActionButton(
@@ -193,6 +194,7 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "SHUTDOWN")
                             scope.launch { snackbarHostState.showSnackbar("Shutdown ${wol.name.substringBefore('.')}") }
+                            onDismiss()
                         }
                     )
                     ActionButton(

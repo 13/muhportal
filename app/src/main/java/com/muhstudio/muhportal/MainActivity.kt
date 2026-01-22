@@ -69,11 +69,11 @@ class MainActivity : ComponentActivity() {
                         targetState = showSettings,
                         transitionSpec = {
                             if (targetState) {
-                                slideInHorizontally { it } + fadeIn() togetherWith
-                                        slideOutHorizontally { -it } + fadeOut()
+                                (slideInHorizontally { it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally { -it } + fadeOut())
                             } else {
-                                slideInHorizontally { -it } + fadeIn() togetherWith
-                                        slideOutHorizontally { it } + fadeOut()
+                                (slideInHorizontally { -it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally { it } + fadeOut())
                             }
                         },
                         label = "navigation"
