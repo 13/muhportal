@@ -33,8 +33,6 @@ fun TitleBar(
     onDarkModeChange: (Boolean) -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-
     Row(
         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -52,38 +50,8 @@ fun TitleBar(
             Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onBackground)
         }
 
-        Box {
-            IconButton(onClick = { showMenu = true }) {
-                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
-            }
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Settings") },
-                    onClick = {
-                        showMenu = false
-                        onOpenSettings()
-                    },
-                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) }
-                )
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Dark Mode")
-                            Spacer(Modifier.weight(1f))
-                            Switch(
-                                checked = isDarkMode,
-                                onCheckedChange = {
-                                    onDarkModeChange(it)
-                                }
-                            )
-                        }
-                    },
-                    onClick = { }
-                )
-            }
+        IconButton(onClick = onOpenSettings) {
+            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
         }
     }
 }
