@@ -2,8 +2,12 @@ package com.muhstudio.muhportal
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -31,102 +35,42 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MuhportalTheme {
+            val systemDark = isSystemInDarkTheme()
+            var isDarkMode by remember { mutableStateOf(systemDark) }
+            var showSettings by remember { mutableStateOf(false) }
+
+            MuhportalTheme(darkTheme = isDarkMode) {
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
-                val pagerState = rememberPagerState(pageCount = { 3 })
                 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        bottomBar = {
-                            NavigationBar(
-                                containerColor = Color.White,
-                                tonalElevation = 8.dp
-                            ) {
-                                NavigationBarItem(
-                                    selected = pagerState.currentPage == 0,
-                                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                                    icon = { Icon(Icons.Default.Lock, contentDescription = "Portal") },
-                                    label = { Text("Portal") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = Color.Black,
-                                        selectedTextColor = Color.Black,
-                                        indicatorColor = Color(0xFFE0E0E0),
-                                        unselectedIconColor = Color.Gray,
-                                        unselectedTextColor = Color.Gray
-                                    )
-                                )
-                                NavigationBarItem(
-                                    selected = pagerState.currentPage == 1,
-                                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-                                    icon = { Icon(Icons.Default.Lan, contentDescription = "WOL") },
-                                    label = { Text("WOL") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = Color.Black,
-                                        selectedTextColor = Color.Black,
-                                        indicatorColor = Color(0xFFE0E0E0),
-                                        unselectedIconColor = Color.Gray,
-                                        unselectedTextColor = Color.Gray
-                                    )
-                                )
-                                NavigationBarItem(
-                                    selected = pagerState.currentPage == 2,
-                                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
-                                    icon = { Icon(Icons.Default.Lightbulb, contentDescription = "HA") },
-                                    label = { Text("HA") },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = Color.Black,
-                                        selectedTextColor = Color.Black,
-                                        indicatorColor = Color(0xFFE0E0E0),
-                                        unselectedIconColor = Color.Gray,
-                                        unselectedTextColor = Color.Gray
-                                    )
-                                )
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    AnimatedContent(
+                        targetState = showSettings,
+                        transitionSpec = {
+                            if (targetState) {
+                                slideInHorizontally { it } + fadeIn() togetherWith
+                                        slideOutHorizontally { -it } + fadeOut()
+                            } else {
+                                slideInHorizontally { -it } + fadeIn() togetherWith
+                                        slideOutHorizontally { it } + fadeOut()
                             }
-                        }
-                    ) { innerPadding ->
-                        val context = LocalContext.current
-                        var connState by remember { mutableStateOf(ConnState.DISCONNECTED) }
-                        val portalStates = remember { mutableStateMapOf<String, PortalUpdate>() }
-                        val wolStates = remember { mutableStateMapOf<String, WolUpdate>() }
-
-                        val mqtt = remember {
-                            GarageMqttClient(
-                                context = context,
-                                onConnState = { connState = it },
-                                onPortalUpdate = { portalStates[it.id] = it },
-                                onWolUpdate = { wolStates[it.id] = it }
+                        },
+                        label = "navigation"
+                    ) { settingsVisible ->
+                        if (settingsVisible) {
+                            BackHandler { showSettings = false }
+                            SettingsScreen(
+                                isDarkMode = isDarkMode,
+                                onDarkModeChange = { isDarkMode = it },
+                                onBack = { showSettings = false }
                             )
-                        }
-
-                        val isPreview = androidx.compose.ui.platform.LocalInspectionMode.current
-                        DisposableEffect(Unit) {
-                            if (!isPreview) mqtt.connect()
-                            onDispose { if (!isPreview) mqtt.disconnect() }
-                        }
-
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.padding(innerPadding).fillMaxSize()
-                        ) { page ->
-                            when (page) {
-                                0 -> PortalScreen(
-                                    connState = connState,
-                                    portalStates = portalStates,
-                                    onRefresh = { mqtt.reconnect() },
-                                    onToggle = { mqtt.toggle(it) },
-                                    snackbarHostState = snackbarHostState
-                                )
-                                1 -> WolScreen(
-                                    connState = connState,
-                                    wolStates = wolStates,
-                                    onRefresh = { mqtt.reconnect() },
-                                    onWolAction = { mac, action -> mqtt.wolAction(mac, action) },
-                                    snackbarHostState = snackbarHostState
-                                )
-                                2 -> GenericPlaceholderScreen("HA", connState) { mqtt.reconnect() }
-                            }
+                        } else {
+                            MainContent(
+                                isDarkMode = isDarkMode,
+                                onDarkModeChange = { isDarkMode = it },
+                                onOpenSettings = { showSettings = true },
+                                snackbarHostState = snackbarHostState
+                            )
                         }
                     }
 
@@ -146,6 +90,124 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun MainContent(
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
+    snackbarHostState: SnackbarHostState
+) {
+    val scope = rememberCoroutineScope()
+    val pagerState = rememberPagerState(pageCount = { 3 })
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp
+            ) {
+                NavigationBarItem(
+                    selected = pagerState.currentPage == 0,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                    icon = { Icon(Icons.Default.Lock, contentDescription = "Portal") },
+                    label = { Text("Portal") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                NavigationBarItem(
+                    selected = pagerState.currentPage == 1,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                    icon = { Icon(Icons.Default.Lan, contentDescription = "WOL") },
+                    label = { Text("WOL") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                NavigationBarItem(
+                    selected = pagerState.currentPage == 2,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
+                    icon = { Icon(Icons.Default.Lightbulb, contentDescription = "HA") },
+                    label = { Text("HA") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+            }
+        }
+    ) { innerPadding ->
+        val context = LocalContext.current
+        var connState by remember { mutableStateOf(ConnState.DISCONNECTED) }
+        val portalStates = remember { mutableStateMapOf<String, PortalUpdate>() }
+        val wolStates = remember { mutableStateMapOf<String, WolUpdate>() }
+
+        val mqtt = remember {
+            GarageMqttClient(
+                context = context,
+                onConnState = { connState = it },
+                onPortalUpdate = { portalStates[it.id] = it },
+                onWolUpdate = { wolStates[it.id] = it }
+            )
+        }
+
+        val isPreview = androidx.compose.ui.platform.LocalInspectionMode.current
+        DisposableEffect(Unit) {
+            if (!isPreview) mqtt.connect()
+            onDispose { if (!isPreview) mqtt.disconnect() }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.padding(innerPadding).fillMaxSize()
+        ) { page ->
+            when (page) {
+                0 -> PortalScreen(
+                    connState = connState,
+                    portalStates = portalStates,
+                    onRefresh = { mqtt.reconnect() },
+                    onToggle = { mqtt.toggle(it) },
+                    snackbarHostState = snackbarHostState,
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    onOpenSettings = onOpenSettings
+                )
+                1 -> WolScreen(
+                    connState = connState,
+                    wolStates = wolStates,
+                    onRefresh = { mqtt.reconnect() },
+                    onWolAction = { mac, action -> mqtt.wolAction(mac, action) },
+                    snackbarHostState = snackbarHostState,
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    onOpenSettings = onOpenSettings
+                )
+                2 -> GenericPlaceholderScreen(
+                    title = "HA",
+                    connState = connState,
+                    onRefresh = { mqtt.reconnect() },
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    onOpenSettings = onOpenSettings
+                )
             }
         }
     }

@@ -21,16 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.muhstudio.muhportal.ui.theme.MuhportalTheme
 import kotlinx.coroutines.launch
 
 enum class PortalGroup { HAUSTUER, GARAGENTUER, GARAGE }
@@ -42,6 +39,9 @@ fun PortalScreen(
     onRefresh: () -> Unit,
     onToggle: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedGroup by remember { mutableStateOf<PortalGroup?>(null) }
@@ -49,9 +49,17 @@ fun PortalScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        TitleBar(connState, onRefresh, stringResource(R.string.portal_title), Icons.Default.Lock)
+        TitleBar(
+            connState = connState,
+            onRefresh = onRefresh,
+            title = stringResource(R.string.portal_title),
+            icon = Icons.Default.Lock,
+            isDarkMode = isDarkMode,
+            onDarkModeChange = onDarkModeChange,
+            onOpenSettings = onOpenSettings
+        )
         HorizontalDivider(
             color = getConnColor(connState),
             thickness = 4.dp
@@ -82,6 +90,9 @@ fun WolScreen(
     onRefresh: () -> Unit,
     onWolAction: (String, String) -> Unit,
     snackbarHostState: SnackbarHostState,
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedWol by remember { mutableStateOf<WolUpdate?>(null) }
@@ -89,9 +100,17 @@ fun WolScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        TitleBar(connState, onRefresh, "WOL", Icons.Default.Lan)
+        TitleBar(
+            connState = connState,
+            onRefresh = onRefresh,
+            title = "WOL",
+            icon = Icons.Default.Lan,
+            isDarkMode = isDarkMode,
+            onDarkModeChange = onDarkModeChange,
+            onOpenSettings = onOpenSettings
+        )
         HorizontalDivider(
             color = getConnColor(connState),
             thickness = 4.dp
@@ -102,7 +121,6 @@ fun WolScreen(
             contentPadding = PaddingValues(top = 16.dp)
         ) {
             items(wolStates.values.toList().sortedBy { it.name }) { wol ->
-                //WolItem(wol, onClick = { selectedWol = wol })
                 WolItem(wol, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
             }
         }
@@ -144,11 +162,11 @@ private fun WolItem(wol: WolUpdate, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = displayName, fontSize = 24.sp, color = Color.Black)
+            Text(text = displayName, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
             StatusBadge(if (wol.alive) "ON" else "OFF", if (wol.alive) Color(0xFF4CAF50) else Color.Red)
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = wol.ip, fontSize = 14.sp, color = Color.LightGray)
+        Text(text = wol.ip, fontSize = 14.sp, color = Color.Gray)
     }
 }
 
@@ -180,15 +198,15 @@ private fun WolActionDialog(
     ) {
         Card(
             shape = RoundedCornerShape(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().background(Color(0xFFE0E0E0)).padding(vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = wol.name.substringBefore('.'), fontSize = 24.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                    Text(text = wol.name.substringBefore('.'), fontSize = 24.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 Column(
@@ -202,7 +220,6 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "WAKE")
                             scope.launch { snackbarHostState.showSnackbar("Wake ${wol.name.substringBefore('.')}") }
-                            //onDismiss()
                         }
                     )
                     ActionButton(
@@ -211,14 +228,12 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "SHUTDOWN")
                             scope.launch { snackbarHostState.showSnackbar("Shutdown ${wol.name.substringBefore('.')}") }
-                            //onDismiss()
                         }
                     )
                     ActionButton(
                         text = stringResource(R.string.abbrechen),
-                        containerColor = Color.Black,
-                        contentColor = Color.White,
-                        //elevation = 0.dp,
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface,
                         onClick = onDismiss
                     )
                 }
@@ -228,13 +243,28 @@ private fun WolActionDialog(
 }
 
 @Composable
-fun GenericPlaceholderScreen(title: String, connState: ConnState, onRefresh: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+fun GenericPlaceholderScreen(
+    title: String,
+    connState: ConnState,
+    onRefresh: () -> Unit,
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val icon = when (title) {
             "HA" -> Icons.Default.Lightbulb
             else -> Icons.Default.Help
         }
-        TitleBar(connState, onRefresh, title, icon)
+        TitleBar(
+            connState = connState,
+            onRefresh = onRefresh,
+            title = title,
+            icon = icon,
+            isDarkMode = isDarkMode,
+            onDarkModeChange = onDarkModeChange,
+            onOpenSettings = onOpenSettings
+        )
         HorizontalDivider(color = getConnColor(connState), thickness = 4.dp)
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text = "$title Screen", fontSize = 24.sp, color = Color.Gray)
@@ -250,7 +280,17 @@ private fun getConnColor(connState: ConnState) = when (connState) {
 }
 
 @Composable
-private fun TitleBar(connState: ConnState, onRefresh: () -> Unit, title: String, icon: ImageVector) {
+private fun TitleBar(
+    connState: ConnState,
+    onRefresh: () -> Unit,
+    title: String,
+    icon: ImageVector,
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -258,13 +298,48 @@ private fun TitleBar(connState: ConnState, onRefresh: () -> Unit, title: String,
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (connState == ConnState.CONNECTED) Color.Gray else Color.LightGray,
+            tint = if (connState == ConnState.CONNECTED) MaterialTheme.colorScheme.primary else Color.LightGray,
             modifier = Modifier.size(28.dp)
         )
         Spacer(modifier = Modifier.width(32.dp))
-        Text(text = title, fontSize = 24.sp, color = Color.Black, modifier = Modifier.weight(1f))
+        Text(text = title, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+
         IconButton(onClick = onRefresh) {
-            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.Black)
+            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onBackground)
+        }
+
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Settings") },
+                    onClick = {
+                        showMenu = false
+                        onOpenSettings()
+                    },
+                    leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Dark Mode")
+                            Spacer(Modifier.weight(1f))
+                            Switch(
+                                checked = isDarkMode,
+                                onCheckedChange = {
+                                    onDarkModeChange(it)
+                                }
+                            )
+                        }
+                    },
+                    onClick = { }
+                )
+            }
         }
     }
 }
@@ -375,7 +450,7 @@ private fun PortalSection(
             ) {
                 Box(modifier = Modifier.size(18.dp).background(row.color, RoundedCornerShape(2.dp)))
                 Spacer(modifier = Modifier.width(32.dp))
-                Text(text = row.text, fontSize = 24.sp, color = Color.Black)
+                Text(text = row.text, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
             }
         }
     }
@@ -383,8 +458,8 @@ private fun PortalSection(
 
 @Composable
 private fun TimeBadge(time: String) {
-    Surface(color = Color(0xFFE0E0E0), shape = RoundedCornerShape(4.dp)) {
-        Text(text = time, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 14.sp, color = Color.Black)
+    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp)) {
+        Text(text = time, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -415,15 +490,15 @@ private fun PortalActionDialog(
     ) {
         Card(
             shape = RoundedCornerShape(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().background(Color(0xFFE0E0E0)).padding(vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = groupName, fontSize = 24.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                    Text(text = groupName, fontSize = 24.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 Column(
@@ -479,9 +554,8 @@ private fun PortalActionDialog(
 
                     ActionButton(
                         text = labelAbbrechen,
-                        containerColor = Color.Black,
-                        contentColor = Color.White,
-                        //elevation = 0.dp,
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface,
                         onClick = onDismiss
                     )
                 }
@@ -495,7 +569,7 @@ private fun StatusItem(text: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(24.dp).background(color, RoundedCornerShape(2.dp)))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = text, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+        Text(text = text, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -504,14 +578,17 @@ private fun ActionButton(
     text: String,
     icon: ImageVector? = null,
     modifier: Modifier = Modifier,
-    containerColor: Color = Color(0xFFF5F5F5),
-    contentColor: Color = Color.Black,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
     elevation: androidx.compose.ui.unit.Dp = 2.dp,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
+
+    val finalContainerColor = containerColor ?: MaterialTheme.colorScheme.secondaryContainer
+    val finalContentColor = contentColor ?: MaterialTheme.colorScheme.onSecondaryContainer
 
     Button(
         onClick = onClick,
@@ -521,15 +598,15 @@ private fun ActionButton(
         },
         interactionSource = interactionSource,
         shape = RoundedCornerShape(4.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = containerColor),
+        colors = ButtonDefaults.buttonColors(containerColor = finalContainerColor),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = elevation)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             if (icon != null) {
-                Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(24.dp))
+                Icon(imageVector = icon, contentDescription = null, tint = finalContentColor, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Text(text = text, color = contentColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(text = text, color = finalContentColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
