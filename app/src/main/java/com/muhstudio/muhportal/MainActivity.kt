@@ -13,22 +13,19 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.muhstudio.muhportal.ui.theme.MuhportalTheme
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +38,6 @@ class MainActivity : ComponentActivity() {
 
             MuhportalTheme(darkTheme = isDarkMode) {
                 val snackbarHostState = remember { SnackbarHostState() }
-                val scope = rememberCoroutineScope()
                 
                 Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     AnimatedContent(
@@ -117,7 +113,12 @@ fun MainContent(
                     selected = pagerState.currentPage == 0,
                     onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
                     icon = { Icon(Icons.Default.Lock, contentDescription = "Portal") },
-                    label = { Text("Portal") },
+                    label = { 
+                        Text(
+                            text = "Portal",
+                            fontWeight = if (pagerState.currentPage == 0) FontWeight.Bold else FontWeight.Normal
+                        ) 
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -130,7 +131,12 @@ fun MainContent(
                     selected = pagerState.currentPage == 1,
                     onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
                     icon = { Icon(Icons.Default.Lan, contentDescription = "WOL") },
-                    label = { Text("WOL") },
+                    label = { 
+                        Text(
+                            text = "WOL",
+                            fontWeight = if (pagerState.currentPage == 1) FontWeight.Bold else FontWeight.Normal
+                        ) 
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -143,7 +149,12 @@ fun MainContent(
                     selected = pagerState.currentPage == 2,
                     onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
                     icon = { Icon(Icons.Default.Lightbulb, contentDescription = "HA") },
-                    label = { Text("HA") },
+                    label = { 
+                        Text(
+                            text = "HA",
+                            fontWeight = if (pagerState.currentPage == 2) FontWeight.Bold else FontWeight.Normal
+                        ) 
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -200,8 +211,7 @@ fun MainContent(
                     onDarkModeChange = onDarkModeChange,
                     onOpenSettings = onOpenSettings
                 )
-                2 -> GenericPlaceholderScreen(
-                    title = "HA",
+                2 -> HAScreen(
                     connState = connState,
                     onRefresh = { mqtt.reconnect() },
                     isDarkMode = isDarkMode,
@@ -211,15 +221,4 @@ fun MainContent(
             }
         }
     }
-}
-
-fun formatTime(timestamp: Long): String {
-    val now = Calendar.getInstance()
-    val time = Calendar.getInstance().apply { timeInMillis = timestamp }
-    
-    val isSameDay = now.get(Calendar.YEAR) == time.get(Calendar.YEAR) &&
-                    now.get(Calendar.DAY_OF_YEAR) == time.get(Calendar.DAY_OF_YEAR)
-    
-    val pattern = if (isSameDay) "HH:mm" else "dd.MM. HH:mm"
-    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(timestamp))
 }

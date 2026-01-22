@@ -11,8 +11,8 @@ android {
         applicationId = "com.muhstudio.muhportal"
         minSdk = 28 // Updated for Android 9 (Pie) compatibility
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
