@@ -1,9 +1,9 @@
 package com.muhstudio.muhportal
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -21,6 +22,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun HAScreen(
     connState: ConnState,
+    sensorStates: Map<String, SensorUpdate>,
+    switchStates: Map<String, SwitchUpdate>,
+    onSwitchAction: (String, Boolean) -> Unit,
     onRefresh: () -> Unit,
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
@@ -64,12 +68,87 @@ fun HAScreen(
             },
             modifier = Modifier.weight(1f)
         ) {
-            Box(
+            LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text(text = "HA Screen", fontSize = 24.sp, color = Color.Gray)
+                item {
+                    val sensor = sensorStates["87"]
+                    val sw = switchStates["tasmota_BDC5E0"]
+                    
+                    HASection(
+                        title = "Kommer",
+                        value1 = sensor?.temp?.let { "%.1f°C".format(it) },
+                        value2 = sensor?.humidity?.let { "%.1f%%".format(it) },
+                        switchState = sw?.state ?: false,
+                        onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) }
+                    )
+                }
+                item {
+                    val s1 = sensorStates["DS18B20-3628FF"]
+                    val s2 = sensorStates["DS18B20-1C16E1"]
+                    val sw = switchStates["tasmota_A7EEA3"]
+
+                    HASection(
+                        title = "Brenner",
+                        value1 = s1?.temp?.let { "%.1f°C".format(it) },
+                        value2 = s2?.temp?.let { "%.1f°C".format(it) },
+                        switchState = sw?.state ?: false,
+                        onSwitchChange = { onSwitchAction("tasmota_A7EEA3", it) }
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun HASection(
+    title: String,
+    value1: String?,
+    value2: String?,
+    switchState: Boolean,
+    onSwitchChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 24.sp,
+            color = Color.LightGray,
+            modifier = Modifier.weight(1f)
+        )
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = value1 ?: "--.-",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = value2 ?: "--.-",
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Switch(
+            checked = switchState,
+            onCheckedChange = onSwitchChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFF4CAF50),
+                checkedTrackColor = Color(0xFF4CAF50).copy(alpha = 0.5f)
+            )
+        )
     }
 }

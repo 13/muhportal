@@ -195,13 +195,17 @@ fun MainContent(
         var connState by remember { mutableStateOf(ConnState.DISCONNECTED) }
         val portalStates = remember { mutableStateMapOf<String, PortalUpdate>() }
         val wolStates = remember { mutableStateMapOf<String, WolUpdate>() }
+        val sensorStates = remember { mutableStateMapOf<String, SensorUpdate>() }
+        val switchStates = remember { mutableStateMapOf<String, SwitchUpdate>() }
 
         val mqtt = remember {
             GarageMqttClient(
                 context = context,
                 onConnState = { connState = it },
                 onPortalUpdate = { portalStates[it.id] = it },
-                onWolUpdate = { wolStates[it.id] = it }
+                onWolUpdate = { wolStates[it.id] = it },
+                onSensorUpdate = { sensorStates[it.id] = it },
+                onSwitchUpdate = { switchStates[it.id] = it }
             )
         }
 
@@ -238,6 +242,9 @@ fun MainContent(
                 )
                 2 -> HAScreen(
                     connState = connState,
+                    sensorStates = sensorStates,
+                    switchStates = switchStates,
+                    onSwitchAction = { id, state -> mqtt.setPower(id, state) },
                     onRefresh = { mqtt.reconnect() },
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,

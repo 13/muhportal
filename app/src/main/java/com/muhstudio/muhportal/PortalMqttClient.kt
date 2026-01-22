@@ -27,11 +27,26 @@ data class WolUpdate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class SensorUpdate(
+    val id: String,
+    val temp: Float,
+    val humidity: Float = 0f,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+data class SwitchUpdate(
+    val id: String,
+    val state: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class GarageMqttClient(
     context: Context,
     private val onConnState: (ConnState) -> Unit,
     private val onPortalUpdate: (PortalUpdate) -> Unit,
     private val onWolUpdate: (WolUpdate) -> Unit,
+    private val onSensorUpdate: (SensorUpdate) -> Unit,
+    private val onSwitchUpdate: (SwitchUpdate) -> Unit,
 ) {
     private val serverUri = "ws://192.168.22.5:1884"
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
@@ -57,6 +72,9 @@ class GarageMqttClient(
                 try {
                     client.subscribe("muh/portal/+/json", 0)
                     client.subscribe("muh/pc/+", 0)
+                    client.subscribe("muh/sensors/#", 0)
+                    client.subscribe("tasmota/tele/+/STATE", 0)
+                    client.subscribe("tasmota/stat/+/RESULT", 0)
                 } catch (e: MqttException) {
                     e.printStackTrace()
                 }
@@ -69,13 +87,27 @@ class GarageMqttClient(
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 if (topic != null && message != null) {
                     val payload = message.payload.toString(StandardCharsets.UTF_8)
-                    if (topic.startsWith(portalTopicPrefix)) {
-                        val key = topic.removePrefix(portalTopicPrefix).removeSuffix(portalTopicSuffix)
-                        parsePortalUpdate(key, payload)?.let { onPortalUpdate(it) }
-                    } else if (topic.startsWith(wolTopicPrefix)) {
-                        val key = topic.removePrefix(wolTopicPrefix)
-                        if (key != "cmnd") {
-                            parseWolUpdate(key, payload)?.let { onWolUpdate(it) }
+                    when {
+                        topic.startsWith(portalTopicPrefix) -> {
+                            val key = topic.removePrefix(portalTopicPrefix).removeSuffix(portalTopicSuffix)
+                            parsePortalUpdate(key, payload)?.let { onPortalUpdate(it) }
+                        }
+                        topic.startsWith(wolTopicPrefix) -> {
+                            val key = topic.removePrefix(wolTopicPrefix)
+                            if (key != "cmnd") {
+                                parseWolUpdate(key, payload)?.let { onWolUpdate(it) }
+                            }
+                        }
+                        topic.startsWith("muh/sensors/") -> {
+                            val parts = topic.split("/")
+                            if (parts.size >= 3) {
+                                val id = if (parts.last() == "json") parts[parts.size - 2] else parts.last()
+                                parseSensorUpdate(id, payload)?.let { onSensorUpdate(it) }
+                            }
+                        }
+                        topic.startsWith("tasmota/tele/") || topic.startsWith("tasmota/stat/") -> {
+                            val key = topic.split("/")[2]
+                            parseTasmotaUpdate(key, payload)?.let { onSwitchUpdate(it) }
                         }
                     }
                 }
@@ -146,6 +178,18 @@ class GarageMqttClient(
         }
     }
 
+    fun setPower(deviceId: String, state: Boolean) {
+        if (!client.isConnected) return
+        val topic = "tasmota/cmnd/$deviceId/POWER"
+        val payload = if (state) "1" else "0"
+        val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
+        try {
+            client.publish(topic, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
     private fun parsePortalUpdate(key: String, jsonStr: String): PortalUpdate? {
         return try {
             val json = org.json.JSONObject(jsonStr)
@@ -175,6 +219,46 @@ class GarageMqttClient(
             )
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private fun parseSensorUpdate(key: String, jsonStr: String): SensorUpdate? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            val temp = when {
+                json.has("T1") -> json.getDouble("T1").toFloat()
+                json.has("DS18B20") -> json.getJSONObject("DS18B20").getDouble("Temperature").toFloat()
+                else -> return null
+            }
+            val humidity = if (json.has("H1")) json.getDouble("H1").toFloat() else 0f
+            SensorUpdate(
+                id = key,
+                temp = temp,
+                humidity = humidity,
+                timestamp = tryParseTime(json) ?: System.currentTimeMillis()
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parseTasmotaUpdate(key: String, jsonStr: String): SwitchUpdate? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            if (json.has("POWER")) {
+                val powerStr = json.getString("POWER")
+                val state = powerStr == "ON" || powerStr == "1"
+                SwitchUpdate(key, state, tryParseTime(json) ?: System.currentTimeMillis())
+            } else if (json.has("POWER1")) { // Some tasmota devices use POWER1
+                val powerStr = json.getString("POWER1")
+                val state = powerStr == "ON" || powerStr == "1"
+                SwitchUpdate(key, state, tryParseTime(json) ?: System.currentTimeMillis())
+            } else null
+        } catch (e: Exception) {
+            // Check if it's just a raw "0" or "1"
+            if (jsonStr == "0" || jsonStr == "1") {
+                SwitchUpdate(key, jsonStr == "1", System.currentTimeMillis())
+            } else null
         }
     }
 
