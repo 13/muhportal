@@ -287,21 +287,17 @@ private fun PortalActionDialog(
                                 val prefix = if (group == PortalGroup.HAUSTUER) "HDL" else "GDL"
                                 ActionButton(text = labelOeffnen, icon = Icons.Default.MeetingRoom, onClick = {
                                     onToggle("${prefix}_O"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelOeffnen") }
-                                    onDismiss()
                                 })
                                 ActionButton(text = labelEntriegeln, icon = Icons.Default.LockOpen, onClick = {
                                     onToggle("${prefix}_U"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelEntriegeln") }
-                                    onDismiss()
                                 })
                                 ActionButton(text = labelVerriegeln, icon = Icons.Default.Lock, onClick = {
                                     onToggle("${prefix}_L"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelVerriegeln") }
-                                    onDismiss()
                                 })
                             }
                             PortalGroup.GARAGE -> {
                                 ActionButton(text = labelBewegen, icon = Icons.Default.SwapVert, onClick = {
                                     onToggle("G_T"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelBewegen") }
-                                    onDismiss()
                                 })
                             }
                         }
