@@ -73,6 +73,7 @@ class GarageMqttClient(
                     client.subscribe("muh/portal/+/json", 0)
                     client.subscribe("muh/pc/+", 0)
                     client.subscribe("muh/sensors/#", 0)
+                    client.subscribe("muh/wst/data/+", 0)
                     client.subscribe("tasmota/tele/+/STATE", 0)
                     client.subscribe("tasmota/stat/+/RESULT", 0)
                 } catch (e: MqttException) {
@@ -104,6 +105,10 @@ class GarageMqttClient(
                                 val id = if (parts.last() == "json") parts[parts.size - 2] else parts.last()
                                 parseSensorUpdate(id, payload)?.let { onSensorUpdate(it) }
                             }
+                        }
+                        topic.startsWith("muh/wst/data/") -> {
+                            val id = topic.removePrefix("muh/wst/data/")
+                            parseWstUpdate(id, payload)?.let { onSensorUpdate(it) }
                         }
                         topic.startsWith("tasmota/tele/") || topic.startsWith("tasmota/stat/") -> {
                             val key = topic.split("/")[2]
@@ -231,6 +236,22 @@ class GarageMqttClient(
                 else -> return null
             }
             val humidity = if (json.has("H1")) json.getDouble("H1").toFloat() else 0f
+            SensorUpdate(
+                id = key,
+                temp = temp,
+                humidity = humidity,
+                timestamp = tryParseTime(json) ?: System.currentTimeMillis()
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parseWstUpdate(key: String, jsonStr: String): SensorUpdate? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            val temp = if (json.has("temp_c")) json.getDouble("temp_c").toFloat() else return null
+            val humidity = if (json.has("humidity")) json.getDouble("humidity").toFloat() else 0f
             SensorUpdate(
                 id = key,
                 temp = temp,

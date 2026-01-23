@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.muhstudio.muhportal.ui.theme.MuhportalTheme
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,6 +126,116 @@ fun MainContent(
 ) {
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { 3 })
+    val context = LocalContext.current
+    val cachePrefs = remember { context.getSharedPreferences("mqtt_cache", Context.MODE_PRIVATE) }
+
+    val portalStates = remember { mutableStateMapOf<String, PortalUpdate>() }
+    val wolStates = remember { mutableStateMapOf<String, WolUpdate>() }
+    val sensorStates = remember { mutableStateMapOf<String, SensorUpdate>() }
+    val switchStates = remember { mutableStateMapOf<String, SwitchUpdate>() }
+
+    // Load Cache
+    LaunchedEffect(Unit) {
+        cachePrefs.getString("portal", null)?.let { jsonStr ->
+            val json = JSONObject(jsonStr)
+            json.keys().forEach { id ->
+                val obj = json.getJSONObject(id)
+                portalStates[id] = PortalUpdate(
+                    id = id,
+                    state = DoorState.valueOf(obj.getString("state")),
+                    timestamp = obj.getLong("timestamp")
+                )
+            }
+        }
+        cachePrefs.getString("wol", null)?.let { jsonStr ->
+            val json = JSONObject(jsonStr)
+            json.keys().forEach { id ->
+                val obj = json.getJSONObject(id)
+                wolStates[id] = WolUpdate(
+                    id = id,
+                    name = obj.getString("name"),
+                    ip = obj.getString("ip"),
+                    mac = obj.getString("mac"),
+                    alive = obj.getBoolean("alive"),
+                    priority = obj.optInt("priority", 99),
+                    timestamp = obj.getLong("timestamp")
+                )
+            }
+        }
+        cachePrefs.getString("sensors", null)?.let { jsonStr ->
+            val json = JSONObject(jsonStr)
+            json.keys().forEach { id ->
+                val obj = json.getJSONObject(id)
+                sensorStates[id] = SensorUpdate(
+                    id = id,
+                    temp = obj.getDouble("temp").toFloat(),
+                    humidity = obj.getDouble("humidity").toFloat(),
+                    timestamp = obj.getLong("timestamp")
+                )
+            }
+        }
+        cachePrefs.getString("switches", null)?.let { jsonStr ->
+            val json = JSONObject(jsonStr)
+            json.keys().forEach { id ->
+                val obj = json.getJSONObject(id)
+                switchStates[id] = SwitchUpdate(
+                    id = id,
+                    state = obj.getBoolean("state"),
+                    timestamp = obj.getLong("timestamp")
+                )
+            }
+        }
+    }
+
+    // Save Cache Helpers
+    fun savePortal() {
+        val json = JSONObject()
+        portalStates.forEach { (id, update) ->
+            json.put(id, JSONObject().apply {
+                put("state", update.state.name)
+                put("timestamp", update.timestamp)
+            })
+        }
+        cachePrefs.edit().putString("portal", json.toString()).apply()
+    }
+
+    fun saveWol() {
+        val json = JSONObject()
+        wolStates.forEach { (id, update) ->
+            json.put(id, JSONObject().apply {
+                put("name", update.name)
+                put("ip", update.ip)
+                put("mac", update.mac)
+                put("alive", update.alive)
+                put("priority", update.priority)
+                put("timestamp", update.timestamp)
+            })
+        }
+        cachePrefs.edit().putString("wol", json.toString()).apply()
+    }
+
+    fun saveSensors() {
+        val json = JSONObject()
+        sensorStates.forEach { (id, update) ->
+            json.put(id, JSONObject().apply {
+                put("temp", update.temp)
+                put("humidity", update.humidity)
+                put("timestamp", update.timestamp)
+            })
+        }
+        cachePrefs.edit().putString("sensors", json.toString()).apply()
+    }
+
+    fun saveSwitches() {
+        val json = JSONObject()
+        switchStates.forEach { (id, update) ->
+            json.put(id, JSONObject().apply {
+                put("state", update.state)
+                put("timestamp", update.timestamp)
+            })
+        }
+        cachePrefs.edit().putString("switches", json.toString()).apply()
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -191,21 +302,16 @@ fun MainContent(
             }
         }
     ) { innerPadding ->
-        val context = LocalContext.current
         var connState by remember { mutableStateOf(ConnState.DISCONNECTED) }
-        val portalStates = remember { mutableStateMapOf<String, PortalUpdate>() }
-        val wolStates = remember { mutableStateMapOf<String, WolUpdate>() }
-        val sensorStates = remember { mutableStateMapOf<String, SensorUpdate>() }
-        val switchStates = remember { mutableStateMapOf<String, SwitchUpdate>() }
 
         val mqtt = remember {
             GarageMqttClient(
                 context = context,
                 onConnState = { connState = it },
-                onPortalUpdate = { portalStates[it.id] = it },
-                onWolUpdate = { wolStates[it.id] = it },
-                onSensorUpdate = { sensorStates[it.id] = it },
-                onSwitchUpdate = { switchStates[it.id] = it }
+                onPortalUpdate = { portalStates[it.id] = it; savePortal() },
+                onWolUpdate = { wolStates[it.id] = it; saveWol() },
+                onSensorUpdate = { sensorStates[it.id] = it; saveSensors() },
+                onSwitchUpdate = { switchStates[it.id] = it; saveSwitches() }
             )
         }
 

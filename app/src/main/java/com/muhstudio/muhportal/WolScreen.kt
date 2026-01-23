@@ -188,7 +188,6 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "WAKE")
                             scope.launch { snackbarHostState.showSnackbar("Wake ${wol.name.substringBefore('.')}") }
-                            onDismiss()
                         }
                     )
                     ActionButton(
@@ -197,7 +196,6 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "SHUTDOWN")
                             scope.launch { snackbarHostState.showSnackbar("Shutdown ${wol.name.substringBefore('.')}") }
-                            onDismiss()
                         }
                     )
                     ActionButton(

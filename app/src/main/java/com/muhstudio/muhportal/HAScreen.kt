@@ -3,7 +3,6 @@ package com.muhstudio.muhportal
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
@@ -73,13 +72,25 @@ fun HAScreen(
                 contentPadding = PaddingValues(16.dp)
             ) {
                 item {
+                    val sensor = sensorStates["B327"]
+                    
+                    HASection(
+                        title = "Temperatur",
+                        value1 = sensor?.temp?.let { "%.1f°".format(it) },
+                        value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
+                        switchState = false,
+                        onSwitchChange = { },
+                        showSwitch = false
+                    )
+                }
+                item {
                     val sensor = sensorStates["87"]
                     val sw = switchStates["tasmota_BDC5E0"]
                     
                     HASection(
                         title = "Kommer",
-                        value1 = sensor?.temp?.let { "%.1f°C".format(it) },
-                        value2 = sensor?.humidity?.let { "%.1f%%".format(it) },
+                        value1 = sensor?.temp?.let { "%.0f°".format(it) },
+                        value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = sw?.state ?: false,
                         onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) }
                     )
@@ -91,8 +102,8 @@ fun HAScreen(
 
                     HASection(
                         title = "Brenner",
-                        value1 = s1?.temp?.let { "%.1f°C".format(it) },
-                        value2 = s2?.temp?.let { "%.1f°C".format(it) },
+                        value1 = s1?.temp?.let { "%.0f°".format(it) },
+                        value2 = s2?.temp?.let { "%.0f°".format(it) },
                         switchState = sw?.state ?: false,
                         onSwitchChange = { onSwitchAction("tasmota_A7EEA3", it) }
                     )
@@ -108,7 +119,8 @@ private fun HASection(
     value1: String?,
     value2: String?,
     switchState: Boolean,
-    onSwitchChange: (Boolean) -> Unit
+    onSwitchChange: (Boolean) -> Unit,
+    showSwitch: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -142,13 +154,18 @@ private fun HASection(
             )
         }
 
-        Switch(
-            checked = switchState,
-            onCheckedChange = onSwitchChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF4CAF50),
-                checkedTrackColor = Color(0xFF4CAF50).copy(alpha = 0.5f)
+        if (showSwitch) {
+            Switch(
+                checked = switchState,
+                onCheckedChange = onSwitchChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF4CAF50),
+                    checkedTrackColor = Color(0xFF4CAF50).copy(alpha = 0.5f)
+                )
             )
-        )
+        } else {
+            // Spacer to keep layout consistent
+            Spacer(modifier = Modifier.width(52.dp))
+        }
     }
 }
