@@ -40,6 +40,15 @@ data class SwitchUpdate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class PvUpdate(
+    val id: String,
+    val p1: Float,
+    val p2: Float,
+    val e1: Float,
+    val e2: Float,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class GarageMqttClient(
     context: Context,
     private val onConnState: (ConnState) -> Unit,
@@ -47,6 +56,7 @@ class GarageMqttClient(
     private val onWolUpdate: (WolUpdate) -> Unit,
     private val onSensorUpdate: (SensorUpdate) -> Unit,
     private val onSwitchUpdate: (SwitchUpdate) -> Unit,
+    private val onPvUpdate: (PvUpdate) -> Unit,
 ) {
     private val serverUri = "ws://192.168.22.5:1884"
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
@@ -74,6 +84,7 @@ class GarageMqttClient(
                     client.subscribe("muh/pc/+", 0)
                     client.subscribe("muh/sensors/#", 0)
                     client.subscribe("muh/wst/data/+", 0)
+                    client.subscribe("muh/pv/+/json", 0)
                     client.subscribe("tasmota/tele/+/STATE", 0)
                     client.subscribe("tasmota/stat/+/RESULT", 0)
                 } catch (e: MqttException) {
@@ -109,6 +120,10 @@ class GarageMqttClient(
                         topic.startsWith("muh/wst/data/") -> {
                             val id = topic.removePrefix("muh/wst/data/")
                             parseWstUpdate(id, payload)?.let { onSensorUpdate(it) }
+                        }
+                        topic.startsWith("muh/pv/") -> {
+                            val id = topic.removePrefix("muh/pv/").removeSuffix("/json")
+                            parsePvUpdate(id, payload)?.let { onPvUpdate(it) }
                         }
                         topic.startsWith("tasmota/tele/") || topic.startsWith("tasmota/stat/") -> {
                             val key = topic.split("/")[2]
@@ -256,6 +271,23 @@ class GarageMqttClient(
                 id = key,
                 temp = temp,
                 humidity = humidity,
+                timestamp = tryParseTime(json) ?: System.currentTimeMillis()
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parsePvUpdate(key: String, jsonStr: String): PvUpdate? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            val data = json.getJSONObject("data")
+            PvUpdate(
+                id = key,
+                p1 = data.getDouble("p1").toFloat(),
+                p2 = data.getDouble("p2").toFloat(),
+                e1 = data.getDouble("e1").toFloat(),
+                e2 = data.getDouble("e2").toFloat(),
                 timestamp = tryParseTime(json) ?: System.currentTimeMillis()
             )
         } catch (e: Exception) {

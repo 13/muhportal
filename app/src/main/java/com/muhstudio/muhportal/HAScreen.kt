@@ -23,6 +23,7 @@ fun HAScreen(
     connState: ConnState,
     sensorStates: Map<String, SensorUpdate>,
     switchStates: Map<String, SwitchUpdate>,
+    pvStates: Map<String, PvUpdate>,
     onSwitchAction: (String, Boolean) -> Unit,
     onRefresh: () -> Unit,
     isColorblind: Boolean,
@@ -69,9 +70,33 @@ fun HAScreen(
                     val sensor = sensorStates["B327"]
                     
                     HASection(
-                        title = "Temperatur",
+                        title = "Temperature",
                         value1 = sensor?.temp?.let { "%.1f°".format(it) },
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
+                        switchState = false,
+                        onSwitchChange = { },
+                        isColorblind = isColorblind,
+                        showSwitch = false
+                    )
+                }
+                item {
+                    val pv = pvStates["E07000055917"]
+                    HASection(
+                        title = "PV_A W",
+                        value1 = pv?.let { "%.0f".format(it.p1 + it.p2) },
+                        value2 = pv?.let { "%.0f - %.0f".format(it.p1, it.p2) },
+                        switchState = false,
+                        onSwitchChange = { },
+                        isColorblind = isColorblind,
+                        showSwitch = false
+                    )
+                }
+                item {
+                    val pv = pvStates["E07000055917"]
+                    HASection(
+                        title = "PV_A kW",
+                        value1 = pv?.let { "%.1f".format(it.e1 + it.e2) },
+                        value2 = pv?.let { "%.1f - %.1f".format(it.e1, it.e2) },
                         switchState = false,
                         onSwitchChange = { },
                         isColorblind = isColorblind,
@@ -136,7 +161,7 @@ private fun HASection(
         
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(start = 16.dp)
         ) {
             Text(
                 text = value1 ?: "--.-",
@@ -153,6 +178,7 @@ private fun HASection(
         }
 
         if (showSwitch) {
+            Spacer(modifier = Modifier.width(16.dp))
             Switch(
                 checked = switchState,
                 onCheckedChange = onSwitchChange,
@@ -161,9 +187,6 @@ private fun HASection(
                     checkedTrackColor = getAppColor(AppColor.GREEN, isColorblind).copy(alpha = 0.5f)
                 )
             )
-        } else {
-            // Spacer to keep layout consistent
-            Spacer(modifier = Modifier.width(52.dp))
         }
     }
 }

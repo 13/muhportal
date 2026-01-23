@@ -143,6 +143,7 @@ fun MainContent(
     val wolStates = remember { mutableStateMapOf<String, WolUpdate>() }
     val sensorStates = remember { mutableStateMapOf<String, SensorUpdate>() }
     val switchStates = remember { mutableStateMapOf<String, SwitchUpdate>() }
+    val pvStates = remember { mutableStateMapOf<String, PvUpdate>() }
 
     // Load Cache
     LaunchedEffect(Unit) {
@@ -191,6 +192,20 @@ fun MainContent(
                 switchStates[id] = SwitchUpdate(
                     id = id,
                     state = obj.getBoolean("state"),
+                    timestamp = obj.getLong("timestamp")
+                )
+            }
+        }
+        cachePrefs.getString("pv", null)?.let { jsonStr ->
+            val json = JSONObject(jsonStr)
+            json.keys().forEach { id ->
+                val obj = json.getJSONObject(id)
+                pvStates[id] = PvUpdate(
+                    id = id,
+                    p1 = obj.getDouble("p1").toFloat(),
+                    p2 = obj.getDouble("p2").toFloat(),
+                    e1 = obj.getDouble("e1").toFloat(),
+                    e2 = obj.getDouble("e2").toFloat(),
                     timestamp = obj.getLong("timestamp")
                 )
             }
@@ -245,6 +260,20 @@ fun MainContent(
             })
         }
         cachePrefs.edit().putString("switches", json.toString()).apply()
+    }
+
+    fun savePv() {
+        val json = JSONObject()
+        pvStates.forEach { (id, update) ->
+            json.put(id, JSONObject().apply {
+                put("p1", update.p1)
+                put("p2", update.p2)
+                put("e1", update.e1)
+                put("e2", update.e2)
+                put("timestamp", update.timestamp)
+            })
+        }
+        cachePrefs.edit().putString("pv", json.toString()).apply()
     }
 
     Scaffold(
@@ -321,7 +350,8 @@ fun MainContent(
                 onPortalUpdate = { portalStates[it.id] = it; savePortal() },
                 onWolUpdate = { wolStates[it.id] = it; saveWol() },
                 onSensorUpdate = { sensorStates[it.id] = it; saveSensors() },
-                onSwitchUpdate = { switchStates[it.id] = it; saveSwitches() }
+                onSwitchUpdate = { switchStates[it.id] = it; saveSwitches() },
+                onPvUpdate = { pvStates[it.id] = it; savePv() }
             )
         }
 
@@ -358,6 +388,7 @@ fun MainContent(
                     connState = connState,
                     sensorStates = sensorStates,
                     switchStates = switchStates,
+                    pvStates = pvStates,
                     onSwitchAction = { id, state -> mqtt.setPower(id, state) },
                     onRefresh = { mqtt.reconnect() },
                     isColorblind = isColorblind,
