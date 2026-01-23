@@ -40,8 +40,7 @@ fun WolScreen(
     onRefresh: () -> Unit,
     onWolAction: (String, String) -> Unit,
     snackbarHostState: SnackbarHostState,
-    isDarkMode: Boolean,
-    onDarkModeChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -59,12 +58,11 @@ fun WolScreen(
             onRefresh = onRefresh,
             title = "WOL",
             icon = Icons.Default.Lan,
-            isDarkMode = isDarkMode,
-            onDarkModeChange = onDarkModeChange,
+            isColorblind = isColorblind,
             onOpenSettings = onOpenSettings
         )
         HorizontalDivider(
-            color = getConnColor(connState),
+            color = getConnColor(connState, isColorblind),
             thickness = 4.dp
         )
         
@@ -88,7 +86,7 @@ fun WolScreen(
                     wolStates.values.toList()
                         .sortedWith(compareBy<WolUpdate> { it.priority }.thenBy { it.name })
                 ) { wol ->
-                    WolItem(wol, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
+                    WolItem(wol, isColorblind, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
                 }
             }
         }
@@ -105,7 +103,7 @@ fun WolScreen(
 }
 
 @Composable
-private fun WolItem(wol: WolUpdate, onClick: () -> Unit) {
+private fun WolItem(wol: WolUpdate, isColorblind: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.98f else 1f, label = "scale")
@@ -131,7 +129,10 @@ private fun WolItem(wol: WolUpdate, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = displayName, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
-            StatusBadge(if (wol.alive) "ON" else "OFF", if (wol.alive) Color(0xFF4CAF50) else Color.Red)
+            StatusBadge(
+                if (wol.alive) "ON" else "OFF",
+                getAppColor(if (wol.alive) AppColor.GREEN else AppColor.RED, isColorblind)
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = wol.ip, fontSize = 14.sp, color = Color.Gray)
@@ -188,6 +189,7 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "WAKE")
                             scope.launch { snackbarHostState.showSnackbar("Wake ${wol.name.substringBefore('.')}") }
+                            onDismiss()
                         }
                     )
                     ActionButton(
@@ -196,6 +198,7 @@ private fun WolActionDialog(
                         onClick = {
                             onAction(wol.mac, "SHUTDOWN")
                             scope.launch { snackbarHostState.showSnackbar("Shutdown ${wol.name.substringBefore('.')}") }
+                            onDismiss()
                         }
                     )
                     ActionButton(

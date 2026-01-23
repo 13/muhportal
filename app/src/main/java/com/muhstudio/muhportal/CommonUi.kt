@@ -1,13 +1,11 @@
 package com.muhstudio.muhportal
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -29,8 +27,7 @@ fun TitleBar(
     onRefresh: () -> Unit,
     title: String,
     icon: ImageVector,
-    isDarkMode: Boolean,
-    onDarkModeChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
     onOpenSettings: () -> Unit
 ) {
     Row(
@@ -40,7 +37,7 @@ fun TitleBar(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (connState == ConnState.CONNECTED) MaterialTheme.colorScheme.primary else Color.LightGray,
+            tint = if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isColorblind) else Color.LightGray,
             modifier = Modifier.size(28.dp)
         )
         Spacer(modifier = Modifier.width(32.dp))
@@ -94,10 +91,18 @@ fun ActionButton(
     }
 }
 
-fun getConnColor(connState: ConnState) = when (connState) {
-    ConnState.CONNECTED -> Color(0xFF4CAF50)
-    ConnState.CONNECTING -> Color.Yellow
-    ConnState.DISCONNECTED -> Color.Red
+enum class AppColor { GREEN, RED, YELLOW }
+
+fun getAppColor(color: AppColor, isColorblind: Boolean): Color = when (color) {
+    AppColor.GREEN -> if (isColorblind) Color(0xFF2196F3) else Color(0xFF4CAF50)
+    AppColor.RED -> if (isColorblind) Color(0xFFFF9800) else Color.Red
+    AppColor.YELLOW -> Color.Yellow
+}
+
+fun getConnColor(connState: ConnState, isColorblind: Boolean) = when (connState) {
+    ConnState.CONNECTED -> getAppColor(AppColor.GREEN, isColorblind)
+    ConnState.CONNECTING -> getAppColor(AppColor.YELLOW, isColorblind)
+    ConnState.DISCONNECTED -> getAppColor(AppColor.RED, isColorblind)
 }
 
 fun formatTime(timestamp: Long): String {

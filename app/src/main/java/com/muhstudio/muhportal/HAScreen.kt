@@ -25,8 +25,7 @@ fun HAScreen(
     switchStates: Map<String, SwitchUpdate>,
     onSwitchAction: (String, Boolean) -> Unit,
     onRefresh: () -> Unit,
-    isDarkMode: Boolean,
-    onDarkModeChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,16 +42,11 @@ fun HAScreen(
             onRefresh = onRefresh,
             title = "HA",
             icon = Icons.Default.Lightbulb,
-            isDarkMode = isDarkMode,
-            onDarkModeChange = onDarkModeChange,
+            isColorblind = isColorblind,
             onOpenSettings = onOpenSettings
         )
         HorizontalDivider(
-            color = when (connState) {
-                ConnState.CONNECTED -> Color(0xFF4CAF50)
-                ConnState.CONNECTING -> Color.Yellow
-                ConnState.DISCONNECTED -> Color.Red
-            },
+            color = getConnColor(connState, isColorblind),
             thickness = 4.dp
         )
         PullToRefreshBox(
@@ -80,6 +74,7 @@ fun HAScreen(
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = false,
                         onSwitchChange = { },
+                        isColorblind = isColorblind,
                         showSwitch = false
                     )
                 }
@@ -92,7 +87,8 @@ fun HAScreen(
                         value1 = sensor?.temp?.let { "%.0f°".format(it) },
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = sw?.state ?: false,
-                        onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) }
+                        onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) },
+                        isColorblind = isColorblind
                     )
                 }
                 item {
@@ -105,7 +101,8 @@ fun HAScreen(
                         value1 = s1?.temp?.let { "%.0f°".format(it) },
                         value2 = s2?.temp?.let { "%.0f°".format(it) },
                         switchState = sw?.state ?: false,
-                        onSwitchChange = { onSwitchAction("tasmota_A7EEA3", it) }
+                        onSwitchChange = { onSwitchAction("tasmota_A7EEA3", it) },
+                        isColorblind = isColorblind
                     )
                 }
             }
@@ -120,6 +117,7 @@ private fun HASection(
     value2: String?,
     switchState: Boolean,
     onSwitchChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
     showSwitch: Boolean = true
 ) {
     Row(
@@ -159,8 +157,8 @@ private fun HASection(
                 checked = switchState,
                 onCheckedChange = onSwitchChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color(0xFF4CAF50),
-                    checkedTrackColor = Color(0xFF4CAF50).copy(alpha = 0.5f)
+                    checkedThumbColor = getAppColor(AppColor.GREEN, isColorblind),
+                    checkedTrackColor = getAppColor(AppColor.GREEN, isColorblind).copy(alpha = 0.5f)
                 )
             )
         } else {

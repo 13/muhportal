@@ -41,6 +41,9 @@ class MainActivity : ComponentActivity() {
             var isDarkMode by remember { 
                 mutableStateOf(prefs.getBoolean("dark_mode", systemDark)) 
             }
+            var isColorblind by remember {
+                mutableStateOf(prefs.getBoolean("colorblind_mode", false))
+            }
             var showSettings by remember { mutableStateOf(false) }
 
             DisposableEffect(isDarkMode) {
@@ -60,6 +63,11 @@ class MainActivity : ComponentActivity() {
             val updateDarkMode: (Boolean) -> Unit = { newValue ->
                 isDarkMode = newValue
                 prefs.edit().putBoolean("dark_mode", newValue).apply()
+            }
+
+            val updateColorblind: (Boolean) -> Unit = { newValue ->
+                isColorblind = newValue
+                prefs.edit().putBoolean("colorblind_mode", newValue).apply()
             }
 
             MuhportalTheme(darkTheme = isDarkMode) {
@@ -84,12 +92,14 @@ class MainActivity : ComponentActivity() {
                             SettingsScreen(
                                 isDarkMode = isDarkMode,
                                 onDarkModeChange = updateDarkMode,
+                                isColorblind = isColorblind,
+                                onColorblindChange = updateColorblind,
                                 onBack = { showSettings = false }
                             )
                         } else {
                             MainContent(
                                 isDarkMode = isDarkMode,
-                                onDarkModeChange = updateDarkMode,
+                                isColorblind = isColorblind,
                                 onOpenSettings = { showSettings = true },
                                 snackbarHostState = snackbarHostState
                             )
@@ -104,7 +114,7 @@ class MainActivity : ComponentActivity() {
                             .padding(top = 8.dp)
                     ) { data ->
                         Snackbar(
-                            containerColor = Color(0xFF4CAF50),
+                            containerColor = getAppColor(AppColor.GREEN, isColorblind),
                             contentColor = Color.White,
                             shape = RoundedCornerShape(4.dp)
                         ) {
@@ -120,7 +130,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainContent(
     isDarkMode: Boolean,
-    onDarkModeChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
     onOpenSettings: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
@@ -332,8 +342,7 @@ fun MainContent(
                     onRefresh = { mqtt.reconnect() },
                     onToggle = { mqtt.toggle(it) },
                     snackbarHostState = snackbarHostState,
-                    isDarkMode = isDarkMode,
-                    onDarkModeChange = onDarkModeChange,
+                    isColorblind = isColorblind,
                     onOpenSettings = onOpenSettings
                 )
                 1 -> WolScreen(
@@ -342,8 +351,7 @@ fun MainContent(
                     onRefresh = { mqtt.reconnect() },
                     onWolAction = { mac, action -> mqtt.wolAction(mac, action) },
                     snackbarHostState = snackbarHostState,
-                    isDarkMode = isDarkMode,
-                    onDarkModeChange = onDarkModeChange,
+                    isColorblind = isColorblind,
                     onOpenSettings = onOpenSettings
                 )
                 2 -> HAScreen(
@@ -352,8 +360,7 @@ fun MainContent(
                     switchStates = switchStates,
                     onSwitchAction = { id, state -> mqtt.setPower(id, state) },
                     onRefresh = { mqtt.reconnect() },
-                    isDarkMode = isDarkMode,
-                    onDarkModeChange = onDarkModeChange,
+                    isColorblind = isColorblind,
                     onOpenSettings = onOpenSettings
                 )
             }

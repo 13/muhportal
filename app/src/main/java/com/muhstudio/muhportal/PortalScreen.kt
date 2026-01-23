@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +39,7 @@ fun PortalScreen(
     onRefresh: () -> Unit,
     onToggle: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
-    isDarkMode: Boolean,
-    onDarkModeChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -59,12 +57,11 @@ fun PortalScreen(
             onRefresh = onRefresh,
             title = stringResource(R.string.portal_title),
             icon = Icons.Default.Lock,
-            isDarkMode = isDarkMode,
-            onDarkModeChange = onDarkModeChange,
+            isColorblind = isColorblind,
             onOpenSettings = onOpenSettings
         )
         HorizontalDivider(
-            color = getConnColor(connState),
+            color = getConnColor(connState, isColorblind),
             thickness = 4.dp
         )
         
@@ -80,7 +77,7 @@ fun PortalScreen(
             },
             modifier = Modifier.weight(1f)
         ) {
-            PortalContent(portalStates, onGroupClick = { selectedGroup = it })
+            PortalContent(portalStates, isColorblind, onGroupClick = { selectedGroup = it })
         }
     }
 
@@ -88,6 +85,7 @@ fun PortalScreen(
         PortalActionDialog(
             group = group,
             portalStates = portalStates,
+            isColorblind = isColorblind,
             onDismiss = { selectedGroup = null },
             onToggle = onToggle,
             snackbarHostState = snackbarHostState
@@ -98,6 +96,7 @@ fun PortalScreen(
 @Composable
 private fun PortalContent(
     portalStates: Map<String, PortalUpdate>,
+    isColorblind: Boolean,
     onGroupClick: (PortalGroup) -> Unit
 ) {
     LazyColumn(
@@ -113,11 +112,11 @@ private fun PortalContent(
                 rows = listOf(
                     StatusRowData(
                         text = if (hd?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                        color = if (hd?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                        color = getAppColor(if (hd?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                     ),
                     StatusRowData(
                         text = if (hdl?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
-                        color = if (hdl?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                        color = getAppColor(if (hdl?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                     )
                 ),
                 onClick = { onGroupClick(PortalGroup.HAUSTUER) }
@@ -132,11 +131,11 @@ private fun PortalContent(
                 rows = listOf(
                     StatusRowData(
                         text = if (gd?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                        color = if (gd?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                        color = getAppColor(if (gd?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                     ),
                     StatusRowData(
                         text = if (gdl?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
-                        color = if (gdl?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                        color = getAppColor(if (gdl?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                     )
                 ),
                 onClick = { onGroupClick(PortalGroup.GARAGENTUER) }
@@ -150,7 +149,7 @@ private fun PortalContent(
                 rows = listOf(
                     StatusRowData(
                         text = if (g?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                        color = if (g?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                        color = getAppColor(if (g?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                     )
                 ),
                 onClick = { onGroupClick(PortalGroup.GARAGE) }
@@ -218,6 +217,7 @@ private fun TimeBadge(time: String) {
 private fun PortalActionDialog(
     group: PortalGroup,
     portalStates: Map<String, PortalUpdate>,
+    isColorblind: Boolean,
     onDismiss: () -> Unit,
     onToggle: (String) -> Unit,
     snackbarHostState: SnackbarHostState
@@ -236,8 +236,8 @@ private fun PortalActionDialog(
     val labelAbbrechen = stringResource(R.string.abbrechen)
 
     Dialog(
-        onDismissRequest = { },
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
     ) {
         Card(
             shape = RoundedCornerShape(4.dp),
@@ -264,17 +264,17 @@ private fun PortalActionDialog(
                                     val prefix = if (group == PortalGroup.HAUSTUER) "HD" else "GD"
                                     StatusItem(
                                         text = if (portalStates[prefix]?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                                        color = if (portalStates[prefix]?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                                        color = getAppColor(if (portalStates[prefix]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                                     )
                                     StatusItem(
                                         text = if (portalStates[prefix + "L"]?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
-                                        color = if (portalStates[prefix + "L"]?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                                        color = getAppColor(if (portalStates[prefix + "L"]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                                     )
                                 }
                                 PortalGroup.GARAGE -> {
                                     StatusItem(
                                         text = if (portalStates["G"]?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                                        color = if (portalStates["G"]?.state == DoorState.OPEN) Color(0xFF4CAF50) else Color.Red
+                                        color = getAppColor(if (portalStates["G"]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
                                     )
                                 }
                             }
@@ -284,20 +284,24 @@ private fun PortalActionDialog(
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         when (group) {
                             PortalGroup.HAUSTUER, PortalGroup.GARAGENTUER -> {
-                                val prefix = if (group == PortalGroup.HAUSTUER) "HD" else "GD"
+                                val prefix = if (group == PortalGroup.HAUSTUER) "HDL" else "GDL"
                                 ActionButton(text = labelOeffnen, icon = Icons.Default.MeetingRoom, onClick = {
                                     onToggle("${prefix}_O"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelOeffnen") }
+                                    onDismiss()
                                 })
                                 ActionButton(text = labelEntriegeln, icon = Icons.Default.LockOpen, onClick = {
                                     onToggle("${prefix}_U"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelEntriegeln") }
+                                    onDismiss()
                                 })
                                 ActionButton(text = labelVerriegeln, icon = Icons.Default.Lock, onClick = {
                                     onToggle("${prefix}_L"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelVerriegeln") }
+                                    onDismiss()
                                 })
                             }
                             PortalGroup.GARAGE -> {
                                 ActionButton(text = labelBewegen, icon = Icons.Default.SwapVert, onClick = {
                                     onToggle("G_T"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelBewegen") }
+                                    onDismiss()
                                 })
                             }
                         }

@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.sp
 fun SettingsScreen(
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
+    isColorblind: Boolean,
+    onColorblindChange: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -61,6 +63,18 @@ fun SettingsScreen(
                 Switch(
                     checked = isDarkMode,
                     onCheckedChange = onDarkModeChange
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Colorblind Mode", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+                Switch(
+                    checked = isColorblind,
+                    onCheckedChange = onColorblindChange
                 )
             }
             
