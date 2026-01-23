@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(prefs.getBoolean("colorblind_mode", false))
             }
             var showSettings by remember { mutableStateOf(false) }
+            val overlayState = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
 
             DisposableEffect(isDarkMode) {
                 enableEdgeToEdge(
@@ -73,52 +74,59 @@ class MainActivity : ComponentActivity() {
             MuhportalTheme(darkTheme = isDarkMode) {
                 val snackbarHostState = remember { SnackbarHostState() }
                 
-                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    AnimatedContent(
-                        targetState = showSettings,
-                        transitionSpec = {
-                            if (targetState) {
-                                (slideInHorizontally { it } + fadeIn()) togetherWith
-                                        (slideOutHorizontally { -it } + fadeOut())
+                CompositionLocalProvider(LocalOverlayHost provides overlayState) {
+                    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                        AnimatedContent(
+                            targetState = showSettings,
+                            transitionSpec = {
+                                if (targetState) {
+                                    (slideInHorizontally { it } + fadeIn()) togetherWith
+                                            (slideOutHorizontally { -it } + fadeOut())
+                                } else {
+                                    (slideInHorizontally { -it } + fadeIn()) togetherWith
+                                            (slideOutHorizontally { it } + fadeOut())
+                                }
+                            },
+                            label = "navigation"
+                        ) { settingsVisible ->
+                            if (settingsVisible) {
+                                BackHandler { showSettings = false }
+                                SettingsScreen(
+                                    isDarkMode = isDarkMode,
+                                    onDarkModeChange = updateDarkMode,
+                                    isColorblind = isColorblind,
+                                    onColorblindChange = updateColorblind,
+                                    onBack = { showSettings = false }
+                                )
                             } else {
-                                (slideInHorizontally { -it } + fadeIn()) togetherWith
-                                        (slideOutHorizontally { it } + fadeOut())
+                                MainContent(
+                                    isDarkMode = isDarkMode,
+                                    isColorblind = isColorblind,
+                                    onOpenSettings = { showSettings = true },
+                                    snackbarHostState = snackbarHostState
+                                )
                             }
-                        },
-                        label = "navigation"
-                    ) { settingsVisible ->
-                        if (settingsVisible) {
-                            BackHandler { showSettings = false }
-                            SettingsScreen(
-                                isDarkMode = isDarkMode,
-                                onDarkModeChange = updateDarkMode,
-                                isColorblind = isColorblind,
-                                onColorblindChange = updateColorblind,
-                                onBack = { showSettings = false }
-                            )
-                        } else {
-                            MainContent(
-                                isDarkMode = isDarkMode,
-                                isColorblind = isColorblind,
-                                onOpenSettings = { showSettings = true },
-                                snackbarHostState = snackbarHostState
-                            )
                         }
-                    }
 
-                    SnackbarHost(
-                        hostState = snackbarHostState,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .statusBarsPadding()
-                            .padding(top = 8.dp)
-                    ) { data ->
-                        Snackbar(
-                            containerColor = getAppColor(AppColor.GREEN, isColorblind),
-                            contentColor = Color.White,
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(data.visuals.message)
+                        // Overlays (Dialogs) rendered here
+                        overlayState.value?.invoke()
+
+                        // SnackbarHost rendered LAST so it's always on top and NOT dimmed
+                        SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(top = 8.dp)
+                        ) { data ->
+                            Snackbar(
+                                containerColor = getAppColor(AppColor.GREEN, isColorblind),
+                                contentColor = Color.White,
+                                shape = RoundedCornerShape(4.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            ) {
+                                Text(data.visuals.message)
+                            }
                         }
                     }
                 }

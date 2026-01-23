@@ -24,8 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -46,6 +44,7 @@ fun PortalScreen(
     var selectedGroup by remember { mutableStateOf<PortalGroup?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val overlayHost = LocalOverlayHost.current
 
     Column(
         modifier = modifier
@@ -81,15 +80,19 @@ fun PortalScreen(
         }
     }
 
-    selectedGroup?.let { group ->
-        PortalActionDialog(
-            group = group,
-            portalStates = portalStates,
-            isColorblind = isColorblind,
-            onDismiss = { selectedGroup = null },
-            onToggle = onToggle,
-            snackbarHostState = snackbarHostState
-        )
+    LaunchedEffect(selectedGroup) {
+        overlayHost.value = selectedGroup?.let { group ->
+            {
+                PortalActionDialog(
+                    group = group,
+                    portalStates = portalStates,
+                    isColorblind = isColorblind,
+                    onDismiss = { selectedGroup = null },
+                    onToggle = onToggle,
+                    snackbarHostState = snackbarHostState
+                )
+            }
+        }
     }
 }
 
@@ -235,10 +238,7 @@ private fun PortalActionDialog(
     val labelBewegen = stringResource(R.string.bewegen)
     val labelAbbrechen = stringResource(R.string.abbrechen)
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
-    ) {
+    ModalOverlay(onDismiss = onDismiss) {
         Card(
             shape = RoundedCornerShape(4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

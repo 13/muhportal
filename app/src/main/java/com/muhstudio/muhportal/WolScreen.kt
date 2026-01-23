@@ -27,8 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -47,6 +45,7 @@ fun WolScreen(
     var selectedWol by remember { mutableStateOf<WolUpdate?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val overlayHost = LocalOverlayHost.current
 
     Column(
         modifier = modifier
@@ -92,13 +91,17 @@ fun WolScreen(
         }
     }
 
-    selectedWol?.let { wol ->
-        WolActionDialog(
-            wol = wol,
-            onDismiss = { selectedWol = null },
-            onAction = onWolAction,
-            snackbarHostState = snackbarHostState
-        )
+    LaunchedEffect(selectedWol) {
+        overlayHost.value = selectedWol?.let { wol ->
+            {
+                WolActionDialog(
+                    wol = wol,
+                    onDismiss = { selectedWol = null },
+                    onAction = onWolAction,
+                    snackbarHostState = snackbarHostState
+                )
+            }
+        }
     }
 }
 
@@ -161,10 +164,7 @@ private fun WolActionDialog(
     snackbarHostState: SnackbarHostState
 ) {
     val scope = rememberCoroutineScope()
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
-    ) {
+    ModalOverlay(onDismiss = onDismiss) {
         Card(
             shape = RoundedCornerShape(4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

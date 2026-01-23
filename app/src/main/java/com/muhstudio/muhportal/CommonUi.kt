@@ -1,6 +1,8 @@
 package com.muhstudio.muhportal
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -20,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.*
+
+val LocalOverlayHost = compositionLocalOf<MutableState<(@Composable () -> Unit)?>> {
+    error("No OverlayHost provided")
+}
 
 @Composable
 fun TitleBar(
@@ -87,6 +93,28 @@ fun ActionButton(
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(text = text, color = finalContentColor, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun ModalOverlay(
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.6f))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(modifier = Modifier.clickable(enabled = false) { }) {
+            content()
         }
     }
 }
