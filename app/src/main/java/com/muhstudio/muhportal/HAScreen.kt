@@ -78,6 +78,7 @@ fun HAScreen(
                         isColorblind = isColorblind,
                         showSwitch = false
                     )
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
                 }
                 item {
                     val pv = pvStates["E07000055917"]
@@ -102,6 +103,7 @@ fun HAScreen(
                         isColorblind = isColorblind,
                         showSwitch = false
                     )
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
                 }
                 item {
                     val sensor = sensorStates["87"]
