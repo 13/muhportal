@@ -82,9 +82,9 @@ fun HAScreen(
                 item {
                     val pv = pvStates["E07000055917"]
                     HASection(
-                        title = "PV_A W",
-                        value1 = pv?.let { "%.0f".format(it.p1 + it.p2) },
-                        value2 = pv?.let { "%.0f - %.0f".format(it.p1, it.p2) },
+                        title = "PV",
+                        value1 = pv?.let { "%.0fw".format(it.p1 + it.p2) },
+                        value2 = pv?.let { "%.0f/%.0f".format(it.p1, it.p2) },
                         switchState = false,
                         onSwitchChange = { },
                         isColorblind = isColorblind,
@@ -94,9 +94,9 @@ fun HAScreen(
                 item {
                     val pv = pvStates["E07000055917"]
                     HASection(
-                        title = "PV_A kW",
-                        value1 = pv?.let { "%.1f".format(it.e1 + it.e2) },
-                        value2 = pv?.let { "%.1f - %.1f".format(it.e1, it.e2) },
+                        title = "PV Produktion",
+                        value1 = pv?.let { "%.1fkW".format(it.e1 + it.e2) },
+                        value2 = pv?.let { "%.1f/%.1f".format(it.e1, it.e2) },
                         switchState = false,
                         onSwitchChange = { },
                         isColorblind = isColorblind,
