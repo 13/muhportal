@@ -70,7 +70,7 @@ fun HAScreen(
                     val sensor = sensorStates["B327"]
                     
                     HASection(
-                        title = "Temperature",
+                        title = "Temperatur",
                         value1 = sensor?.temp?.let { "%.1f°".format(it) },
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = false,
