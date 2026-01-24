@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,19 +37,72 @@ fun TitleBar(
     isBlackWhiteMode: Boolean,
     onOpenSettings: () -> Unit
 ) {
+    // Easter egg state
+    var tapCount by remember { mutableStateOf(0) }
+    var showEasterEgg by remember { mutableStateOf(false) }
+    
+    // Rotation animation for easter egg
+    val rotation by animateFloatAsState(
+        targetValue = if (showEasterEgg) 360f else 0f,
+        label = "rotation"
+    )
+    
+    // Auto-reset tap counter if user doesn't complete 7 taps within 2 seconds
+    LaunchedEffect(tapCount) {
+        if (tapCount > 0 && tapCount < 7) {
+            delay(2000)
+            tapCount = 0
+        }
+    }
+    
+    // Auto-reset easter egg after 3 seconds
+    LaunchedEffect(showEasterEgg) {
+        if (showEasterEgg) {
+            delay(3000)
+            showEasterEgg = false
+            tapCount = 0
+        }
+    }
+    
     Row(
         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isBlackWhiteMode) else Color.LightGray,
-            modifier = Modifier.size(28.dp)
-        )
-        // Fixed hardcoded color with MaterialTheme
-        Spacer(modifier = Modifier.width(32.dp))
-        Text(text = title, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+        // Clickable title area (icon + text) with rotation animation
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    if (!showEasterEgg) {
+                        tapCount++
+                        if (tapCount >= 7) {
+                            showEasterEgg = true
+                        }
+                    }
+                }
+                .graphicsLayer {
+                    rotationZ = rotation
+                },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (showEasterEgg) Color(0xFFFF6B35) 
+                      else if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isBlackWhiteMode) 
+                      else Color.LightGray,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.width(32.dp))
+            Text(
+                text = if (showEasterEgg) "🎉 MUH SECRET! 🎉" else title,
+                fontSize = 24.sp,
+                color = if (showEasterEgg) Color(0xFFFF6B35) else MaterialTheme.colorScheme.onBackground
+            )
+        }
 
         IconButton(onClick = onRefresh) {
             Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onBackground)
