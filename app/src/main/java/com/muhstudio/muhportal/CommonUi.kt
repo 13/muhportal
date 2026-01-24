@@ -119,7 +119,7 @@ fun TitleBar(
                 Text(
                     text = "MUUUH!",
                     fontSize = 24.sp,
-                    color = EASTER_EGG_ORANGE_COLOR
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             } else {
                 Text(
