@@ -28,6 +28,12 @@ val LocalOverlayHost = compositionLocalOf<MutableState<(@Composable () -> Unit)?
     error("No OverlayHost provided")
 }
 
+// Easter egg constants
+private const val EASTER_EGG_TAP_COUNT = 7
+private const val EASTER_EGG_RESET_DELAY_MS = 2000L
+private const val EASTER_EGG_DISPLAY_DURATION_MS = 3000L
+private val EASTER_EGG_ORANGE_COLOR = Color(0xFFFF6B35)
+
 @Composable
 fun TitleBar(
     connState: ConnState,
@@ -44,21 +50,25 @@ fun TitleBar(
     // Rotation animation for easter egg
     val rotation by animateFloatAsState(
         targetValue = if (showEasterEgg) 360f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(
+            durationMillis = 800,
+            easing = androidx.compose.animation.core.FastOutSlowInEasing
+        ),
         label = "rotation"
     )
     
-    // Auto-reset tap counter if user doesn't complete 7 taps within 2 seconds
+    // Auto-reset tap counter if user doesn't complete taps within time limit
     LaunchedEffect(tapCount) {
-        if (tapCount > 0 && tapCount < 7) {
-            delay(2000)
+        if (tapCount > 0 && tapCount < EASTER_EGG_TAP_COUNT) {
+            delay(EASTER_EGG_RESET_DELAY_MS)
             tapCount = 0
         }
     }
     
-    // Auto-reset easter egg after 3 seconds
+    // Auto-reset easter egg after display duration
     LaunchedEffect(showEasterEgg) {
         if (showEasterEgg) {
-            delay(3000)
+            delay(EASTER_EGG_DISPLAY_DURATION_MS)
             showEasterEgg = false
             tapCount = 0
         }
@@ -78,7 +88,7 @@ fun TitleBar(
                 ) {
                     if (!showEasterEgg) {
                         tapCount++
-                        if (tapCount >= 7) {
+                        if (tapCount >= EASTER_EGG_TAP_COUNT) {
                             showEasterEgg = true
                         }
                     }
@@ -91,7 +101,7 @@ fun TitleBar(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (showEasterEgg) Color(0xFFFF6B35) 
+                tint = if (showEasterEgg) EASTER_EGG_ORANGE_COLOR 
                       else if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isBlackWhiteMode) 
                       else Color.LightGray,
                 modifier = Modifier.size(28.dp)
@@ -100,7 +110,7 @@ fun TitleBar(
             Text(
                 text = if (showEasterEgg) "🎉 MUH SECRET! 🎉" else title,
                 fontSize = 24.sp,
-                color = if (showEasterEgg) Color(0xFFFF6B35) else MaterialTheme.colorScheme.onBackground
+                color = if (showEasterEgg) EASTER_EGG_ORANGE_COLOR else MaterialTheme.colorScheme.onBackground
             )
         }
 
