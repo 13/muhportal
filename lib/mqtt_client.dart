@@ -6,6 +6,11 @@ import 'models.dart';
 
 class PortalMqttClient {
   // TODO: Consider making these configurable via environment variables or settings UI
+  // SECURITY WARNING: Currently using plain WebSocket (ws://) without TLS or authentication.
+  // For production deployments on untrusted networks, consider:
+  // 1. Using wss:// with TLS encryption
+  // 2. Implementing MQTT authentication (username/password or certificates)
+  // 3. Network-level security (VPN, firewall rules)
   static const String serverUri = '192.168.22.5';
   static const int serverPort = 1884;
   static const String clientIdPrefix = 'muhportal-';

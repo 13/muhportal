@@ -124,14 +124,20 @@ flutter build ios --release
 
 2. **MQTT Protocol**: Both versions use the same MQTT protocol and topics, so they can communicate with the same broker.
 
-3. **Features**: All features from the Android version have been ported to Flutter:
+3. **Security**: **IMPORTANT** - The current implementation uses plain WebSocket (ws://) without TLS or authentication for MQTT connections. This is suitable for trusted local networks only. For production deployments on untrusted networks, consider:
+   - Using wss:// with TLS encryption
+   - Implementing MQTT authentication (username/password or certificates)
+   - Network-level security (VPN, firewall rules)
+   - See security comment in `lib/mqtt_client.dart` for details
+
+4. **Features**: All features from the Android version have been ported to Flutter:
    - Portal monitoring and control
    - Wake-on-LAN functionality
    - Home Automation sensors and switches
    - Settings (dark mode, black & white mode)
    - Offline caching
 
-4. **UI/UX**: The Flutter version maintains visual consistency with the Android version while adapting to platform-specific conventions.
+5. **UI/UX**: The Flutter version maintains visual consistency with the Android version while adapting to platform-specific conventions.
 
 ## Maintenance
 
