@@ -156,11 +156,11 @@ For new development, the Flutter version is recommended for its cross-platform c
 
 ## Known Limitations
 
-1. **MQTT Broker**: The hardcoded broker address (`ws://192.168.22.5:1884`) needs to be accessible from all platforms.
+1. **MQTT Broker**: The hardcoded broker address (`ws://192.168.22.5:1884`) needs to be accessible from all platforms. To change it, edit the constants in `lib/mqtt_client.dart` or implement a configuration screen.
 
-2. **Web CORS**: When running the Flutter web version, ensure the MQTT broker accepts WebSocket connections from the web origin.
+2. **Internationalization**: The app currently uses German strings (matching the original Android app). For multi-language support, consider implementing Flutter's internationalization (i18n) package.
 
-3. **Platform-Specific Features**: Some Android-specific optimizations may not be available in the Flutter version.
+3. **Web CORS**: When running the Flutter web version, ensure the MQTT broker accepts WebSocket connections from the web origin.
 
 ## Future Enhancements
 

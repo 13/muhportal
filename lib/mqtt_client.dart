@@ -5,6 +5,7 @@ import 'package:mqtt_client/mqtt_browser_client.dart';
 import 'models.dart';
 
 class PortalMqttClient {
+  // TODO: Consider making these configurable via environment variables or settings UI
   static const String serverUri = '192.168.22.5';
   static const int serverPort = 1884;
   static const String clientIdPrefix = 'muhportal-';

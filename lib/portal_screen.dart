@@ -334,6 +334,7 @@ class _PortalActionDialog extends StatelessWidget {
                         ),
                       )),
                   ActionButton(
+                    // Note: German strings match original Android app (e.g., "Abbrechen" = "Cancel")
                     text: 'Abbrechen',
                     containerColor: Theme.of(context).colorScheme.onSurface,
                     contentColor: Theme.of(context).colorScheme.surface,

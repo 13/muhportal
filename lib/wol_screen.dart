@@ -260,6 +260,7 @@ class _WolActionDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   ActionButton(
+                    // Note: German strings match original Android app (e.g., "Abbrechen" = "Cancel")
                     text: 'Abbrechen',
                     containerColor: Theme.of(context).colorScheme.onSurface,
                     contentColor: Theme.of(context).colorScheme.surface,
