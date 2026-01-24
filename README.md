@@ -116,4 +116,11 @@ flutter build ios
 
 ## Migration Note
 
-This app has been ported from Kotlin/Android to Flutter for cross-platform support. The original Android/Kotlin code is preserved in the repository for reference.
+This app has been ported from Kotlin/Android to Flutter for cross-platform support. The original Android/Kotlin code is preserved in the `app/` directory for reference.
+
+**Current structure:**
+- `lib/` - Flutter application code (Dart)
+- `app/` - Original Android application code (Kotlin) - preserved for reference
+- `web/` - Flutter web support files
+
+Both implementations are functional and can coexist in the same repository.
