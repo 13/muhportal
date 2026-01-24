@@ -32,7 +32,6 @@ val LocalOverlayHost = compositionLocalOf<MutableState<(@Composable () -> Unit)?
 private const val EASTER_EGG_TAP_COUNT = 7
 private const val EASTER_EGG_RESET_DELAY_MS = 2000L
 private const val EASTER_EGG_DISPLAY_DURATION_MS = 3000L
-private val EASTER_EGG_ORANGE_COLOR = Color(0xFFFF6B35)
 
 @Composable
 fun TitleBar(
