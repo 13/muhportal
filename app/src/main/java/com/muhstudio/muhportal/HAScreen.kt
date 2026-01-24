@@ -24,6 +24,7 @@ fun HAScreen(
     sensorStates: Map<String, SensorUpdate>,
     switchStates: Map<String, SwitchUpdate>,
     pvStates: Map<String, PvUpdate>,
+    energyStates: Map<String, EnergyUpdate>,
     onSwitchAction: (String, Boolean) -> Unit,
     onRefresh: () -> Unit,
     isBlackWhiteMode: Boolean,
@@ -84,7 +85,7 @@ fun HAScreen(
                     val pv = pvStates["E07000055917"]
                     HASection(
                         title = "PV",
-                        value1 = pv?.let { "%.0fw".format(it.p1 + it.p2) },
+                        value1 = pv?.let { "%.0f W".format(it.p1 + it.p2) },
                         value2 = pv?.let { "%.0f/%.0f".format(it.p1, it.p2) },
                         switchState = false,
                         onSwitchChange = { },
@@ -96,7 +97,7 @@ fun HAScreen(
                     val pv = pvStates["E07000055917"]
                     HASection(
                         title = "PV Produktion",
-                        value1 = pv?.let { "%.1fkW".format(java.util.Locale.US, it.e1 + it.e2) },
+                        value1 = pv?.let { "%.1f kWh".format(java.util.Locale.US, it.e1 + it.e2) },
                         value2 = pv?.let { "%.1f/%.1f".format(java.util.Locale.US, it.e1, it.e2) },
                         switchState = false,
                         onSwitchChange = { },
@@ -105,13 +106,65 @@ fun HAScreen(
                     )
                     HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
                 }
+                
+                item {
+                    val energy = energyStates["tasmota_5FF8B2"]
+                    val pv = pvStates["E07000055917"]
+                    
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HASection(
+                            title = "Verbrauch",
+                            value1 = energy?.let { "%.0f W".format(it.activePower) },
+                            value2 = null,
+                            switchState = false,
+                            onSwitchChange = {},
+                            isBlackWhiteMode = isBlackWhiteMode,
+                            showSwitch = false
+                        )
+                        HASection(
+                            title = "Import",
+                            value1 = energy?.let { "%.1f kWh".format(it.todayImport) },
+                            value2 = null,
+                            switchState = false,
+                            onSwitchChange = {},
+                            isBlackWhiteMode = isBlackWhiteMode,
+                            showSwitch = false
+                        )
+                        HASection(
+                            title = "Export",
+                            value1 = energy?.let { "%.1f kWh".format(it.todayExport) },
+                            value2 = null,
+                            switchState = false,
+                            onSwitchChange = {},
+                            isBlackWhiteMode = isBlackWhiteMode,
+                            showSwitch = false
+                        )
+                        
+                        val pvProd = pv?.let { it.e1 + it.e2 }
+                        val pvVerbrauch = if (pvProd != null && energy != null) {
+                            (pvProd - energy.todayExport).coerceAtLeast(0f)
+                        } else null
+                        
+                        HASection(
+                            title = "PV Verbrauch",
+                            value1 = pvVerbrauch?.let { "%.1f kWh".format(it) },
+                            value2 = null,
+                            switchState = false,
+                            onSwitchChange = {},
+                            isBlackWhiteMode = isBlackWhiteMode,
+                            showSwitch = false
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
+                    }
+                }
+                
                 item {
                     val sensor = sensorStates["87"]
                     val sw = switchStates["tasmota_BDC5E0"]
                     
                     HASection(
                         title = "Kommer",
-                        value1 = sensor?.temp?.let { "%.0f°".format(it) },
+                        value1 = sensor?.temp?.let { "%.1f°".format(it) },
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = sw?.state ?: false,
                         onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) },
@@ -171,12 +224,14 @@ private fun HASection(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = value2 ?: "--.-",
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (value2 != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = value2,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         if (showSwitch) {

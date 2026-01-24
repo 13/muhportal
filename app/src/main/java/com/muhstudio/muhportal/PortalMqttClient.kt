@@ -49,6 +49,14 @@ data class PvUpdate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class EnergyUpdate(
+    val id: String,
+    val activePower: Float,
+    val todayImport: Float,
+    val todayExport: Float,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class GarageMqttClient(
     context: Context,
     private val onConnState: (ConnState) -> Unit,
@@ -57,6 +65,7 @@ class GarageMqttClient(
     private val onSensorUpdate: (SensorUpdate) -> Unit,
     private val onSwitchUpdate: (SwitchUpdate) -> Unit,
     private val onPvUpdate: (PvUpdate) -> Unit,
+    private val onEnergyUpdate: (EnergyUpdate) -> Unit,
 ) {
     private val serverUri = "ws://192.168.22.5:1884"
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
@@ -86,6 +95,7 @@ class GarageMqttClient(
                     client.subscribe("muh/wst/data/+", 0)
                     client.subscribe("muh/pv/+/json", 0)
                     client.subscribe("tasmota/tele/+/STATE", 0)
+                    client.subscribe("tasmota/tele/+/SENSOR", 0)
                     client.subscribe("tasmota/stat/+/RESULT", 0)
                 } catch (e: MqttException) {
                     e.printStackTrace()
@@ -124,6 +134,10 @@ class GarageMqttClient(
                         topic.startsWith("muh/pv/") -> {
                             val id = topic.removePrefix("muh/pv/").removeSuffix("/json")
                             parsePvUpdate(id, payload)?.let { onPvUpdate(it) }
+                        }
+                        topic.endsWith("/SENSOR") -> {
+                            val key = topic.split("/")[2]
+                            parseEnergyUpdate(key, payload)?.let { onEnergyUpdate(it) }
                         }
                         topic.startsWith("tasmota/tele/") || topic.startsWith("tasmota/stat/") -> {
                             val key = topic.split("/")[2]
@@ -290,6 +304,29 @@ class GarageMqttClient(
                 e2 = data.getDouble("e2").toFloat(),
                 timestamp = tryParseTime(json) ?: System.currentTimeMillis()
             )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parseEnergyUpdate(key: String, jsonStr: String): EnergyUpdate? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            if (json.has("ENERGY")) {
+                val energy = json.getJSONObject("ENERGY")
+                val activePowerArray = energy.getJSONArray("Power")
+                var totalActivePower = 0f
+                for (i in 0 until activePowerArray.length()) {
+                    totalActivePower += activePowerArray.getDouble(i).toFloat()
+                }
+                EnergyUpdate(
+                    id = key,
+                    activePower = totalActivePower,
+                    todayImport = energy.getDouble("TodaySumImport").toFloat(),
+                    todayExport = energy.getDouble("TodaySumExport").toFloat(),
+                    timestamp = tryParseTime(json) ?: System.currentTimeMillis()
+                )
+            } else null
         } catch (e: Exception) {
             null
         }
