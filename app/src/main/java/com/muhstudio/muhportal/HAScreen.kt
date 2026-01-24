@@ -71,8 +71,8 @@ fun HAScreen(
                     
                     HASection(
                         title = "Temperatur",
-                        value1 = sensor?.temp?.let { "%.1f°".format(it) },
-                        value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
+                        value1 = sensor?.temp?.let { "%.1f°".format(java.util.Locale.US, it) },
+                        value2 = sensor?.humidity?.let { "%.0f%%".format(java.util.Locale.US, it) },
                         switchState = false,
                         onSwitchChange = { },
                         isColorblind = isColorblind,
@@ -96,8 +96,8 @@ fun HAScreen(
                     val pv = pvStates["E07000055917"]
                     HASection(
                         title = "PV Produktion",
-                        value1 = pv?.let { "%.1fkW".format(it.e1 + it.e2) },
-                        value2 = pv?.let { "%.1f/%.1f".format(it.e1, it.e2) },
+                        value1 = pv?.let { "%.1fkW".format(java.util.Locale.US, it.e1 + it.e2) },
+                        value2 = pv?.let { "%.1f/%.1f".format(java.util.Locale.US, it.e1, it.e2) },
                         switchState = false,
                         onSwitchChange = { },
                         isColorblind = isColorblind,
