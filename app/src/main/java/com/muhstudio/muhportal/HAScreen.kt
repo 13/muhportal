@@ -123,7 +123,7 @@ fun HAScreen(
                         )
                         HASection(
                             title = "Import",
-                            value1 = energy?.let { "%.1f kWh".format(it.todayImport) },
+                            value1 = energy?.let { "%.1f kWh".format(java.util.Locale.US,it.todayImport) },
                             value2 = null,
                             switchState = false,
                             onSwitchChange = {},
@@ -132,7 +132,7 @@ fun HAScreen(
                         )
                         HASection(
                             title = "Export",
-                            value1 = energy?.let { "%.1f kWh".format(it.todayExport) },
+                            value1 = energy?.let { "%.1f kWh".format(java.util.Locale.US,it.todayExport) },
                             value2 = null,
                             switchState = false,
                             onSwitchChange = {},
@@ -147,7 +147,7 @@ fun HAScreen(
                         
                         HASection(
                             title = "PV Verbrauch",
-                            value1 = pvVerbrauch?.let { "%.1f kWh".format(it) },
+                            value1 = pvVerbrauch?.let { "%.1f kWh".format(java.util.Locale.US,it) },
                             value2 = null,
                             switchState = false,
                             onSwitchChange = {},
@@ -164,7 +164,7 @@ fun HAScreen(
                     
                     HASection(
                         title = "Kommer",
-                        value1 = sensor?.temp?.let { "%.1f°".format(it) },
+                        value1 = sensor?.temp?.let { "%.1f°".format(java.util.Locale.US,it) },
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = sw?.state ?: false,
                         onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) },
