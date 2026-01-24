@@ -56,11 +56,11 @@ class WolUpdate {
   factory WolUpdate.fromJson(String id, Map<String, dynamic> json) {
     return WolUpdate(
       id: id,
-      name: json['name'] as String,
-      ip: json['ip'] as String,
-      mac: json['mac'] as String,
-      alive: json['alive'] as bool,
-      priority: json['priority'] as int? ?? 99,
+      name: json['name'] is String ? json['name'] as String : '',
+      ip: json['ip'] is String ? json['ip'] as String : '',
+      mac: json['mac'] is String ? json['mac'] as String : '',
+      alive: json['alive'] is bool ? json['alive'] as bool : false,
+      priority: json['priority'] is int ? json['priority'] as int : 99,
       timestamp: _tryParseTime(json),
     );
   }
@@ -93,7 +93,13 @@ class SensorUpdate {
     if (json.containsKey('T1')) {
       temp = (json['T1'] as num).toDouble();
     } else if (json.containsKey('DS18B20')) {
-      temp = (json['DS18B20']['Temperature'] as num).toDouble();
+      final ds18b20 = json['DS18B20'];
+      if (ds18b20 is Map<String, dynamic> && ds18b20.containsKey('Temperature')) {
+        final tempValue = ds18b20['Temperature'];
+        if (tempValue is num) {
+          temp = tempValue.toDouble();
+        }
+      }
     } else if (json.containsKey('temp_c')) {
       temp = (json['temp_c'] as num).toDouble();
     }
@@ -171,13 +177,24 @@ class PvUpdate {
   }) : timestamp = timestamp ?? DateTime.now().millisecondsSinceEpoch;
 
   factory PvUpdate.fromJson(String id, Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>;
+    final rawData = json['data'];
+    final Map<String, dynamic> data = 
+        rawData is Map ? Map<String, dynamic>.from(rawData as Map) : <String, dynamic>{};
+
+    double _readDouble(String key) {
+      final value = data[key];
+      if (value is num) {
+        return value.toDouble();
+      }
+      return 0.0;
+    }
+
     return PvUpdate(
       id: id,
-      p1: (data['p1'] as num).toDouble(),
-      p2: (data['p2'] as num).toDouble(),
-      e1: (data['e1'] as num).toDouble(),
-      e2: (data['e2'] as num).toDouble(),
+      p1: _readDouble('p1'),
+      p2: _readDouble('p2'),
+      e1: _readDouble('e1'),
+      e2: _readDouble('e2'),
       timestamp: _tryParseTime(json),
     );
   }

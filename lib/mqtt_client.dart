@@ -12,6 +12,7 @@ class PortalMqttClient {
 
   late MqttBrowserClient _client;
   ConnState _connState = ConnState.disconnected;
+  StreamSubscription<List<MqttReceivedMessage<MqttMessage>>>? _subscription;
 
   final Function(ConnState) onConnState;
   final Function(PortalUpdate) onPortalUpdate;
@@ -36,7 +37,7 @@ class PortalMqttClient {
     _client.onConnected = _onConnected;
     _client.onDisconnected = _onDisconnected;
     _client.onSubscribed = _onSubscribed;
-    _client.useWebSocket = true;
+    // MqttBrowserClient uses WebSocket by default, no need to set useWebSocket
   }
 
   Future<void> connect() async {
@@ -107,7 +108,9 @@ class PortalMqttClient {
     _client.subscribe('tasmota/tele/+/STATE', MqttQos.atMostOnce);
     _client.subscribe('tasmota/stat/+/RESULT', MqttQos.atMostOnce);
 
-    _client.updates?.listen(_onMessage);
+    // Cancel existing subscription to prevent memory leaks on reconnection
+    _subscription?.cancel();
+    _subscription = _client.updates?.listen(_onMessage);
   }
 
   void _onDisconnected() {

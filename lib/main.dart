@@ -121,135 +121,196 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadCache() async {
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    final portalJson = prefs.getString('portal');
-    if (portalJson != null) {
-      final data = jsonDecode(portalJson) as Map<String, dynamic>;
-      for (final entry in data.entries) {
-        final obj = entry.value as Map<String, dynamic>;
-        setState(() {
-          _portalStates[entry.key] = PortalUpdate(
-            id: entry.key,
-            state: DoorState.values.firstWhere((e) => e.name == obj['state']),
-            timestamp: obj['timestamp'] as int,
-          );
-        });
-      }
-    }
+      // Load all cache data first, then update state once
+      final Map<String, PortalUpdate> portalTemp = {};
+      final Map<String, WolUpdate> wolTemp = {};
+      final Map<String, SensorUpdate> sensorTemp = {};
+      final Map<String, SwitchUpdate> switchTemp = {};
+      final Map<String, PvUpdate> pvTemp = {};
 
-    final wolJson = prefs.getString('wol');
-    if (wolJson != null) {
-      final data = jsonDecode(wolJson) as Map<String, dynamic>;
-      for (final entry in data.entries) {
-        final obj = entry.value as Map<String, dynamic>;
-        setState(() {
-          _wolStates[entry.key] = WolUpdate(
-            id: entry.key,
-            name: obj['name'] as String,
-            ip: obj['ip'] as String,
-            mac: obj['mac'] as String,
-            alive: obj['alive'] as bool,
-            priority: obj['priority'] as int? ?? 99,
-            timestamp: obj['timestamp'] as int,
-          );
-        });
+      try {
+        final portalJson = prefs.getString('portal');
+        if (portalJson != null) {
+          final data = jsonDecode(portalJson) as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final obj = entry.value as Map<String, dynamic>;
+            portalTemp[entry.key] = PortalUpdate(
+              id: entry.key,
+              state: DoorState.values.firstWhere((e) => e.name == obj['state']),
+              timestamp: obj['timestamp'] as int,
+            );
+          }
+        }
+      } catch (e, st) {
+        debugPrint('Failed to load portal cache: $e');
+        debugPrint('$st');
       }
-    }
 
-    final sensorsJson = prefs.getString('sensors');
-    if (sensorsJson != null) {
-      final data = jsonDecode(sensorsJson) as Map<String, dynamic>;
-      for (final entry in data.entries) {
-        final obj = entry.value as Map<String, dynamic>;
-        setState(() {
-          _sensorStates[entry.key] = SensorUpdate(
-            id: entry.key,
-            temp: (obj['temp'] as num).toDouble(),
-            humidity: (obj['humidity'] as num).toDouble(),
-            timestamp: obj['timestamp'] as int,
-          );
-        });
+      try {
+        final wolJson = prefs.getString('wol');
+        if (wolJson != null) {
+          final data = jsonDecode(wolJson) as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final obj = entry.value as Map<String, dynamic>;
+            wolTemp[entry.key] = WolUpdate(
+              id: entry.key,
+              name: obj['name'] as String,
+              ip: obj['ip'] as String,
+              mac: obj['mac'] as String,
+              alive: obj['alive'] as bool,
+              priority: obj['priority'] as int? ?? 99,
+              timestamp: obj['timestamp'] as int,
+            );
+          }
+        }
+      } catch (e, st) {
+        debugPrint('Failed to load WOL cache: $e');
+        debugPrint('$st');
       }
-    }
 
-    final switchesJson = prefs.getString('switches');
-    if (switchesJson != null) {
-      final data = jsonDecode(switchesJson) as Map<String, dynamic>;
-      for (final entry in data.entries) {
-        final obj = entry.value as Map<String, dynamic>;
-        setState(() {
-          _switchStates[entry.key] = SwitchUpdate(
-            id: entry.key,
-            state: obj['state'] as bool,
-            timestamp: obj['timestamp'] as int,
-          );
-        });
+      try {
+        final sensorsJson = prefs.getString('sensors');
+        if (sensorsJson != null) {
+          final data = jsonDecode(sensorsJson) as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final obj = entry.value as Map<String, dynamic>;
+            sensorTemp[entry.key] = SensorUpdate(
+              id: entry.key,
+              temp: (obj['temp'] as num).toDouble(),
+              humidity: (obj['humidity'] as num).toDouble(),
+              timestamp: obj['timestamp'] as int,
+            );
+          }
+        }
+      } catch (e, st) {
+        debugPrint('Failed to load sensor cache: $e');
+        debugPrint('$st');
       }
-    }
 
-    final pvJson = prefs.getString('pv');
-    if (pvJson != null) {
-      final data = jsonDecode(pvJson) as Map<String, dynamic>;
-      for (final entry in data.entries) {
-        final obj = entry.value as Map<String, dynamic>;
-        setState(() {
-          _pvStates[entry.key] = PvUpdate(
-            id: entry.key,
-            p1: (obj['p1'] as num).toDouble(),
-            p2: (obj['p2'] as num).toDouble(),
-            e1: (obj['e1'] as num).toDouble(),
-            e2: (obj['e2'] as num).toDouble(),
-            timestamp: obj['timestamp'] as int,
-          );
-        });
+      try {
+        final switchesJson = prefs.getString('switches');
+        if (switchesJson != null) {
+          final data = jsonDecode(switchesJson) as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final obj = entry.value as Map<String, dynamic>;
+            switchTemp[entry.key] = SwitchUpdate(
+              id: entry.key,
+              state: obj['state'] as bool,
+              timestamp: obj['timestamp'] as int,
+            );
+          }
+        }
+      } catch (e, st) {
+        debugPrint('Failed to load switch cache: $e');
+        debugPrint('$st');
       }
+
+      try {
+        final pvJson = prefs.getString('pv');
+        if (pvJson != null) {
+          final data = jsonDecode(pvJson) as Map<String, dynamic>;
+          for (final entry in data.entries) {
+            final obj = entry.value as Map<String, dynamic>;
+            pvTemp[entry.key] = PvUpdate(
+              id: entry.key,
+              p1: (obj['p1'] as num).toDouble(),
+              p2: (obj['p2'] as num).toDouble(),
+              e1: (obj['e1'] as num).toDouble(),
+              e2: (obj['e2'] as num).toDouble(),
+              timestamp: obj['timestamp'] as int,
+            );
+          }
+        }
+      } catch (e, st) {
+        debugPrint('Failed to load PV cache: $e');
+        debugPrint('$st');
+      }
+
+      // Update state once with all loaded data
+      setState(() {
+        _portalStates.addAll(portalTemp);
+        _wolStates.addAll(wolTemp);
+        _sensorStates.addAll(sensorTemp);
+        _switchStates.addAll(switchTemp);
+        _pvStates.addAll(pvTemp);
+      });
+    } catch (e, st) {
+      debugPrint('Failed to load cache: $e');
+      debugPrint('$st');
     }
   }
 
   Future<void> _savePortal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = <String, dynamic>{};
-    for (final entry in _portalStates.entries) {
-      data[entry.key] = entry.value.toJson();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = <String, dynamic>{};
+      for (final entry in _portalStates.entries) {
+        data[entry.key] = entry.value.toJson();
+      }
+      await prefs.setString('portal', jsonEncode(data));
+    } catch (e, st) {
+      debugPrint('Failed to save portal state to SharedPreferences: $e');
+      debugPrint('$st');
     }
-    await prefs.setString('portal', jsonEncode(data));
   }
 
   Future<void> _saveWol() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = <String, dynamic>{};
-    for (final entry in _wolStates.entries) {
-      data[entry.key] = entry.value.toJson();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = <String, dynamic>{};
+      for (final entry in _wolStates.entries) {
+        data[entry.key] = entry.value.toJson();
+      }
+      await prefs.setString('wol', jsonEncode(data));
+    } catch (e, st) {
+      debugPrint('Failed to save WOL state to SharedPreferences: $e');
+      debugPrint('$st');
     }
-    await prefs.setString('wol', jsonEncode(data));
   }
 
   Future<void> _saveSensors() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = <String, dynamic>{};
-    for (final entry in _sensorStates.entries) {
-      data[entry.key] = entry.value.toJson();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = <String, dynamic>{};
+      for (final entry in _sensorStates.entries) {
+        data[entry.key] = entry.value.toJson();
+      }
+      await prefs.setString('sensors', jsonEncode(data));
+    } catch (e, st) {
+      debugPrint('Failed to save sensor state to SharedPreferences: $e');
+      debugPrint('$st');
     }
-    await prefs.setString('sensors', jsonEncode(data));
   }
 
   Future<void> _saveSwitches() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = <String, dynamic>{};
-    for (final entry in _switchStates.entries) {
-      data[entry.key] = entry.value.toJson();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = <String, dynamic>{};
+      for (final entry in _switchStates.entries) {
+        data[entry.key] = entry.value.toJson();
+      }
+      await prefs.setString('switches', jsonEncode(data));
+    } catch (e, st) {
+      debugPrint('Failed to save switch state to SharedPreferences: $e');
+      debugPrint('$st');
     }
-    await prefs.setString('switches', jsonEncode(data));
   }
 
   Future<void> _savePv() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = <String, dynamic>{};
-    for (final entry in _pvStates.entries) {
-      data[entry.key] = entry.value.toJson();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = <String, dynamic>{};
+      for (final entry in _pvStates.entries) {
+        data[entry.key] = entry.value.toJson();
+      }
+      await prefs.setString('pv', jsonEncode(data));
+    } catch (e, st) {
+      debugPrint('Failed to save PV state to SharedPreferences: $e');
+      debugPrint('$st');
     }
-    await prefs.setString('pv', jsonEncode(data));
   }
 
   void _initMqtt() {
