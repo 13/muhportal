@@ -46,47 +46,53 @@ class _WolScreenState extends State<WolScreen> {
         return priorityCompare != 0 ? priorityCompare : a.name.compareTo(b.name);
       });
 
-    return Column(
+    return Stack(
       children: [
-        TitleBar(
-          connState: widget.connState,
-          onRefresh: widget.onRefresh,
-          title: 'WOL',
-          icon: Icons.lan,
-          isBlackWhiteMode: widget.isBlackWhiteMode,
-          onOpenSettings: widget.onOpenSettings,
-        ),
-        Container(
-          height: 4,
-          color: getConnColor(widget.connState, widget.isBlackWhiteMode),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.only(top: 16),
-              itemCount: sortedWols.length,
-              itemBuilder: (context, index) {
-                final wol = sortedWols[index];
-                return _WolItem(
-                  wol: wol,
-                  isBlackWhiteMode: widget.isBlackWhiteMode,
-                  onTap: () {
-                    if (wol.mac.isNotEmpty) {
-                      setState(() => _selectedWol = wol);
-                    }
-                  },
-                );
-              },
+        Column(
+          children: [
+            TitleBar(
+              connState: widget.connState,
+              onRefresh: widget.onRefresh,
+              title: 'WOL',
+              icon: Icons.lan,
+              isBlackWhiteMode: widget.isBlackWhiteMode,
+              onOpenSettings: widget.onOpenSettings,
             ),
-          ),
+            Container(
+              height: 4,
+              color: getConnColor(widget.connState, widget.isBlackWhiteMode),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(top: 16),
+                  itemCount: sortedWols.length,
+                  itemBuilder: (context, index) {
+                    final wol = sortedWols[index];
+                    return _WolItem(
+                      wol: wol,
+                      isBlackWhiteMode: widget.isBlackWhiteMode,
+                      onTap: () {
+                        if (wol.mac.isNotEmpty) {
+                          setState(() => _selectedWol = wol);
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
         if (_selectedWol != null)
-          _WolActionDialog(
-            wol: _selectedWol!,
-            onDismiss: () => setState(() => _selectedWol = null),
-            onAction: widget.onWolAction,
-            onShowSnackbar: widget.onShowSnackbar,
+          Positioned.fill(
+            child: _WolActionDialog(
+              wol: _selectedWol!,
+              onDismiss: () => setState(() => _selectedWol = null),
+              onAction: widget.onWolAction,
+              onShowSnackbar: widget.onShowSnackbar,
+            ),
           ),
       ],
     );

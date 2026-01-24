@@ -42,38 +42,44 @@ class _PortalScreenState extends State<PortalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        TitleBar(
-          connState: widget.connState,
-          onRefresh: widget.onRefresh,
-          title: 'Portal',
-          icon: Icons.lock,
-          isBlackWhiteMode: widget.isBlackWhiteMode,
-          onOpenSettings: widget.onOpenSettings,
-        ),
-        Container(
-          height: 4,
-          color: getConnColor(widget.connState, widget.isBlackWhiteMode),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: _PortalContent(
-              portalStates: widget.portalStates,
+        Column(
+          children: [
+            TitleBar(
+              connState: widget.connState,
+              onRefresh: widget.onRefresh,
+              title: 'Portal',
+              icon: Icons.lock,
               isBlackWhiteMode: widget.isBlackWhiteMode,
-              onGroupClick: (group) => setState(() => _selectedGroup = group),
+              onOpenSettings: widget.onOpenSettings,
             ),
-          ),
+            Container(
+              height: 4,
+              color: getConnColor(widget.connState, widget.isBlackWhiteMode),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                child: _PortalContent(
+                  portalStates: widget.portalStates,
+                  isBlackWhiteMode: widget.isBlackWhiteMode,
+                  onGroupClick: (group) => setState(() => _selectedGroup = group),
+                ),
+              ),
+            ),
+          ],
         ),
         if (_selectedGroup != null)
-          _PortalActionDialog(
-            group: _selectedGroup!,
-            portalStates: widget.portalStates,
-            isBlackWhiteMode: widget.isBlackWhiteMode,
-            onDismiss: () => setState(() => _selectedGroup = null),
-            onToggle: widget.onToggle,
-            onShowSnackbar: widget.onShowSnackbar,
+          Positioned.fill(
+            child: _PortalActionDialog(
+              group: _selectedGroup!,
+              portalStates: widget.portalStates,
+              isBlackWhiteMode: widget.isBlackWhiteMode,
+              onDismiss: () => setState(() => _selectedGroup = null),
+              onToggle: widget.onToggle,
+              onShowSnackbar: widget.onShowSnackbar,
+            ),
           ),
       ],
     );
