@@ -284,7 +284,7 @@ private fun PortalActionDialog(
                     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         when (group) {
                             PortalGroup.HAUSTUER, PortalGroup.GARAGENTUER -> {
-                                val prefix = if (group == PortalGroup.HAUSTUER) "HDL" else "GDL"
+                                val prefix = if (group == PortalGroup.HAUSTUER) "HD" else "GD"
                                 ActionButton(text = labelOeffnen, icon = Icons.Default.MeetingRoom, onClick = {
                                     onToggle("${prefix}_O"); scope.launch { snackbarHostState.showSnackbar("$groupName $labelOeffnen") }
                                 })
