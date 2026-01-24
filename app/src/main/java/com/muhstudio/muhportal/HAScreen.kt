@@ -157,7 +157,7 @@ private fun HASection(
         Text(
             text = title,
             fontSize = 24.sp,
-            color = Color.LightGray,
+            color = Color.Gray,
             modifier = Modifier.weight(1f)
         )
         

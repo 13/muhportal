@@ -190,7 +190,7 @@ private fun PortalSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = title, fontSize = 28.sp, color = Color.LightGray)
+            Text(text = title, fontSize = 28.sp, color = Color.Gray)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 updates.forEach { update -> TimeBadge(formatTime(update.timestamp)) }
             }
