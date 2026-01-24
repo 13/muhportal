@@ -47,14 +47,14 @@ fun TitleBar(
     var tapCount by remember { mutableStateOf(0) }
     var showEasterEgg by remember { mutableStateOf(false) }
     
-    // Rotation animation for easter egg
-    val rotation by animateFloatAsState(
-        targetValue = if (showEasterEgg) 360f else 0f,
+    // Slide-in animation for cow emoji (from left)
+    val slideOffset by animateFloatAsState(
+        targetValue = if (showEasterEgg) 0f else -200f,
         animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = 800,
+            durationMillis = 600,
             easing = androidx.compose.animation.core.FastOutSlowInEasing
         ),
-        label = "rotation"
+        label = "slideOffset"
     )
     
     // Auto-reset tap counter if user doesn't complete taps within time limit
@@ -78,7 +78,7 @@ fun TitleBar(
         modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Clickable title area (icon + text) with rotation animation
+        // Clickable title area (icon + text) with slide-in animation
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -92,26 +92,42 @@ fun TitleBar(
                             showEasterEgg = true
                         }
                     }
-                }
-                .graphicsLayer {
-                    rotationZ = rotation
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (showEasterEgg) EASTER_EGG_ORANGE_COLOR 
-                      else if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isBlackWhiteMode) 
+                tint = if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isBlackWhiteMode) 
                       else Color.LightGray,
                 modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.width(32.dp))
-            Text(
-                text = if (showEasterEgg) "🎉 MUH SECRET! 🎉" else title,
-                fontSize = 24.sp,
-                color = if (showEasterEgg) EASTER_EGG_ORANGE_COLOR else MaterialTheme.colorScheme.onBackground
-            )
+            
+            // Easter egg cow emoji and text
+            if (showEasterEgg) {
+                Text(
+                    text = "🐄",
+                    fontSize = 28.sp,
+                    modifier = Modifier
+                        .graphicsLayer {
+                            translationX = slideOffset
+                            scaleX = -1f  // Mirror horizontally
+                        }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "MUUUH!",
+                    fontSize = 24.sp,
+                    color = EASTER_EGG_ORANGE_COLOR
+                )
+            } else {
+                Text(
+                    text = title,
+                    fontSize = 24.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
         }
 
         IconButton(onClick = onRefresh) {
