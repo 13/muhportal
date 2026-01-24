@@ -26,7 +26,7 @@ fun HAScreen(
     pvStates: Map<String, PvUpdate>,
     onSwitchAction: (String, Boolean) -> Unit,
     onRefresh: () -> Unit,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,11 +43,11 @@ fun HAScreen(
             onRefresh = onRefresh,
             title = "HA",
             icon = Icons.Default.Lightbulb,
-            isColorblind = isColorblind,
+            isBlackWhiteMode = isBlackWhiteMode,
             onOpenSettings = onOpenSettings
         )
         HorizontalDivider(
-            color = getConnColor(connState, isColorblind),
+            color = getConnColor(connState, isBlackWhiteMode),
             thickness = 4.dp
         )
         PullToRefreshBox(
@@ -75,7 +75,7 @@ fun HAScreen(
                         value2 = sensor?.humidity?.let { "%.0f%%".format(java.util.Locale.US, it) },
                         switchState = false,
                         onSwitchChange = { },
-                        isColorblind = isColorblind,
+                        isBlackWhiteMode = isBlackWhiteMode,
                         showSwitch = false
                     )
                     HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
@@ -88,7 +88,7 @@ fun HAScreen(
                         value2 = pv?.let { "%.0f/%.0f".format(it.p1, it.p2) },
                         switchState = false,
                         onSwitchChange = { },
-                        isColorblind = isColorblind,
+                        isBlackWhiteMode = isBlackWhiteMode,
                         showSwitch = false
                     )
                 }
@@ -100,7 +100,7 @@ fun HAScreen(
                         value2 = pv?.let { "%.1f/%.1f".format(java.util.Locale.US, it.e1, it.e2) },
                         switchState = false,
                         onSwitchChange = { },
-                        isColorblind = isColorblind,
+                        isBlackWhiteMode = isBlackWhiteMode,
                         showSwitch = false
                     )
                     HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
@@ -115,7 +115,7 @@ fun HAScreen(
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = sw?.state ?: false,
                         onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) },
-                        isColorblind = isColorblind
+                        isBlackWhiteMode = isBlackWhiteMode
                     )
                 }
                 item {
@@ -129,7 +129,7 @@ fun HAScreen(
                         value2 = s2?.temp?.let { "%.0f°".format(it) },
                         switchState = sw?.state ?: false,
                         onSwitchChange = { onSwitchAction("tasmota_A7EEA3", it) },
-                        isColorblind = isColorblind
+                        isBlackWhiteMode = isBlackWhiteMode
                     )
                 }
             }
@@ -144,7 +144,7 @@ private fun HASection(
     value2: String?,
     switchState: Boolean,
     onSwitchChange: (Boolean) -> Unit,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     showSwitch: Boolean = true
 ) {
     Row(
@@ -185,8 +185,8 @@ private fun HASection(
                 checked = switchState,
                 onCheckedChange = onSwitchChange,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = getAppColor(AppColor.GREEN, isColorblind),
-                    checkedTrackColor = getAppColor(AppColor.GREEN, isColorblind).copy(alpha = 0.5f)
+                    checkedThumbColor = getAppColor(AppColor.GREEN, isBlackWhiteMode),
+                    checkedTrackColor = getAppColor(AppColor.GREEN, isBlackWhiteMode).copy(alpha = 0.5f)
                 )
             )
         }

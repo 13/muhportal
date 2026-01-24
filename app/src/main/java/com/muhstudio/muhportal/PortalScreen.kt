@@ -37,7 +37,7 @@ fun PortalScreen(
     onRefresh: () -> Unit,
     onToggle: (String) -> Unit,
     snackbarHostState: SnackbarHostState,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -56,11 +56,11 @@ fun PortalScreen(
             onRefresh = onRefresh,
             title = stringResource(R.string.portal_title),
             icon = Icons.Default.Lock,
-            isColorblind = isColorblind,
+            isBlackWhiteMode = isBlackWhiteMode,
             onOpenSettings = onOpenSettings
         )
         HorizontalDivider(
-            color = getConnColor(connState, isColorblind),
+            color = getConnColor(connState, isBlackWhiteMode),
             thickness = 4.dp
         )
         
@@ -76,7 +76,7 @@ fun PortalScreen(
             },
             modifier = Modifier.weight(1f)
         ) {
-            PortalContent(portalStates, isColorblind, onGroupClick = { selectedGroup = it })
+            PortalContent(portalStates, isBlackWhiteMode, onGroupClick = { selectedGroup = it })
         }
     }
 
@@ -86,7 +86,7 @@ fun PortalScreen(
                 PortalActionDialog(
                     group = group,
                     portalStates = portalStates,
-                    isColorblind = isColorblind,
+                    isBlackWhiteMode = isBlackWhiteMode,
                     onDismiss = { selectedGroup = null },
                     onToggle = onToggle,
                     snackbarHostState = snackbarHostState
@@ -99,7 +99,7 @@ fun PortalScreen(
 @Composable
 private fun PortalContent(
     portalStates: Map<String, PortalUpdate>,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onGroupClick: (PortalGroup) -> Unit
 ) {
     LazyColumn(
@@ -115,11 +115,11 @@ private fun PortalContent(
                 rows = listOf(
                     StatusRowData(
                         text = if (hd?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                        color = getAppColor(if (hd?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                        color = getAppColor(if (hd?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                     ),
                     StatusRowData(
                         text = if (hdl?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
-                        color = getAppColor(if (hdl?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                        color = getAppColor(if (hdl?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                     )
                 ),
                 onClick = { onGroupClick(PortalGroup.HAUSTUER) }
@@ -134,11 +134,11 @@ private fun PortalContent(
                 rows = listOf(
                     StatusRowData(
                         text = if (gd?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                        color = getAppColor(if (gd?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                        color = getAppColor(if (gd?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                     ),
                     StatusRowData(
                         text = if (gdl?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
-                        color = getAppColor(if (gdl?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                        color = getAppColor(if (gdl?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                     )
                 ),
                 onClick = { onGroupClick(PortalGroup.GARAGENTUER) }
@@ -152,7 +152,7 @@ private fun PortalContent(
                 rows = listOf(
                     StatusRowData(
                         text = if (g?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                        color = getAppColor(if (g?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                        color = getAppColor(if (g?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                     )
                 ),
                 onClick = { onGroupClick(PortalGroup.GARAGE) }
@@ -220,7 +220,7 @@ private fun TimeBadge(time: String) {
 private fun PortalActionDialog(
     group: PortalGroup,
     portalStates: Map<String, PortalUpdate>,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onDismiss: () -> Unit,
     onToggle: (String) -> Unit,
     snackbarHostState: SnackbarHostState
@@ -264,17 +264,17 @@ private fun PortalActionDialog(
                                     val prefix = if (group == PortalGroup.HAUSTUER) "HD" else "GD"
                                     StatusItem(
                                         text = if (portalStates[prefix]?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                                        color = getAppColor(if (portalStates[prefix]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                                        color = getAppColor(if (portalStates[prefix]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                                     )
                                     StatusItem(
                                         text = if (portalStates[prefix + "L"]?.state == DoorState.OPEN) stringResource(R.string.entriegelt) else stringResource(R.string.verriegelt),
-                                        color = getAppColor(if (portalStates[prefix + "L"]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                                        color = getAppColor(if (portalStates[prefix + "L"]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                                     )
                                 }
                                 PortalGroup.GARAGE -> {
                                     StatusItem(
                                         text = if (portalStates["G"]?.state == DoorState.OPEN) stringResource(R.string.offen) else stringResource(R.string.geschlossen),
-                                        color = getAppColor(if (portalStates["G"]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isColorblind)
+                                        color = getAppColor(if (portalStates["G"]?.state == DoorState.OPEN) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
                                     )
                                 }
                             }

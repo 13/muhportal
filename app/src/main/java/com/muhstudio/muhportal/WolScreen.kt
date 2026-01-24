@@ -38,7 +38,7 @@ fun WolScreen(
     onRefresh: () -> Unit,
     onWolAction: (String, String) -> Unit,
     snackbarHostState: SnackbarHostState,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -57,11 +57,11 @@ fun WolScreen(
             onRefresh = onRefresh,
             title = "WOL",
             icon = Icons.Default.Lan,
-            isColorblind = isColorblind,
+            isBlackWhiteMode = isBlackWhiteMode,
             onOpenSettings = onOpenSettings
         )
         HorizontalDivider(
-            color = getConnColor(connState, isColorblind),
+            color = getConnColor(connState, isBlackWhiteMode),
             thickness = 4.dp
         )
         
@@ -85,7 +85,7 @@ fun WolScreen(
                     wolStates.values.toList()
                         .sortedWith(compareBy<WolUpdate> { it.priority }.thenBy { it.name })
                 ) { wol ->
-                    WolItem(wol, isColorblind, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
+                    WolItem(wol, isBlackWhiteMode, onClick = { if (wol.mac.isNotBlank()) selectedWol = wol })
                 }
             }
         }
@@ -106,7 +106,7 @@ fun WolScreen(
 }
 
 @Composable
-private fun WolItem(wol: WolUpdate, isColorblind: Boolean, onClick: () -> Unit) {
+private fun WolItem(wol: WolUpdate, isBlackWhiteMode: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (isPressed) 0.98f else 1f, label = "scale")
@@ -134,7 +134,7 @@ private fun WolItem(wol: WolUpdate, isColorblind: Boolean, onClick: () -> Unit) 
             Text(text = displayName, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
             StatusBadge(
                 if (wol.alive) "ON" else "OFF",
-                getAppColor(if (wol.alive) AppColor.GREEN else AppColor.RED, isColorblind)
+                getAppColor(if (wol.alive) AppColor.GREEN else AppColor.RED, isBlackWhiteMode)
             )
         }
         Spacer(modifier = Modifier.height(4.dp))

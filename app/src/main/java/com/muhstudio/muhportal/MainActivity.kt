@@ -41,8 +41,8 @@ class MainActivity : ComponentActivity() {
             var isDarkMode by remember { 
                 mutableStateOf(prefs.getBoolean("dark_mode", systemDark)) 
             }
-            var isColorblind by remember {
-                mutableStateOf(prefs.getBoolean("colorblind_mode", false))
+            var isBlackWhiteMode by remember {
+                mutableStateOf(prefs.getBoolean("blackwhite_mode", false))
             }
             var showSettings by remember { mutableStateOf(false) }
             val overlayState = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
@@ -66,9 +66,9 @@ class MainActivity : ComponentActivity() {
                 prefs.edit().putBoolean("dark_mode", newValue).apply()
             }
 
-            val updateColorblind: (Boolean) -> Unit = { newValue ->
-                isColorblind = newValue
-                prefs.edit().putBoolean("colorblind_mode", newValue).apply()
+            val updateBlackWhiteMode: (Boolean) -> Unit = { newValue ->
+                isBlackWhiteMode = newValue
+                prefs.edit().putBoolean("blackwhite_mode", newValue).apply()
             }
 
             MuhportalTheme(darkTheme = isDarkMode) {
@@ -94,14 +94,14 @@ class MainActivity : ComponentActivity() {
                                 SettingsScreen(
                                     isDarkMode = isDarkMode,
                                     onDarkModeChange = updateDarkMode,
-                                    isColorblind = isColorblind,
-                                    onColorblindChange = updateColorblind,
+                                    isBlackWhiteMode = isBlackWhiteMode,
+                                    onBlackWhiteModeChange = updateBlackWhiteMode,
                                     onBack = { showSettings = false }
                                 )
                             } else {
                                 MainContent(
                                     isDarkMode = isDarkMode,
-                                    isColorblind = isColorblind,
+                                    isBlackWhiteMode = isBlackWhiteMode,
                                     onOpenSettings = { showSettings = true },
                                     snackbarHostState = snackbarHostState
                                 )
@@ -120,7 +120,7 @@ class MainActivity : ComponentActivity() {
                                 .padding(top = 8.dp)
                         ) { data ->
                             Snackbar(
-                                containerColor = getAppColor(AppColor.GREEN, isColorblind),
+                                containerColor = getAppColor(AppColor.GREEN, isBlackWhiteMode),
                                 contentColor = Color.White,
                                 shape = RoundedCornerShape(4.dp),
                                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainContent(
     isDarkMode: Boolean,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onOpenSettings: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
@@ -380,7 +380,7 @@ fun MainContent(
                     onRefresh = { mqtt.reconnect() },
                     onToggle = { mqtt.toggle(it) },
                     snackbarHostState = snackbarHostState,
-                    isColorblind = isColorblind,
+                    isBlackWhiteMode = isBlackWhiteMode,
                     onOpenSettings = onOpenSettings
                 )
                 1 -> WolScreen(
@@ -389,7 +389,7 @@ fun MainContent(
                     onRefresh = { mqtt.reconnect() },
                     onWolAction = { mac, action -> mqtt.wolAction(mac, action) },
                     snackbarHostState = snackbarHostState,
-                    isColorblind = isColorblind,
+                    isBlackWhiteMode = isBlackWhiteMode,
                     onOpenSettings = onOpenSettings
                 )
                 2 -> HAScreen(
@@ -399,7 +399,7 @@ fun MainContent(
                     pvStates = pvStates,
                     onSwitchAction = { id, state -> mqtt.setPower(id, state) },
                     onRefresh = { mqtt.reconnect() },
-                    isColorblind = isColorblind,
+                    isBlackWhiteMode = isBlackWhiteMode,
                     onOpenSettings = onOpenSettings
                 )
             }

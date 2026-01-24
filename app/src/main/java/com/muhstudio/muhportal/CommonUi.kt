@@ -33,7 +33,7 @@ fun TitleBar(
     onRefresh: () -> Unit,
     title: String,
     icon: ImageVector,
-    isColorblind: Boolean,
+    isBlackWhiteMode: Boolean,
     onOpenSettings: () -> Unit
 ) {
     Row(
@@ -43,9 +43,10 @@ fun TitleBar(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isColorblind) else Color.LightGray,
+            tint = if (connState == ConnState.CONNECTED) getAppColor(AppColor.GREEN, isBlackWhiteMode) else Color.LightGray,
             modifier = Modifier.size(28.dp)
         )
+        // Fixed hardcoded color with MaterialTheme
         Spacer(modifier = Modifier.width(32.dp))
         Text(text = title, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
 
@@ -121,16 +122,16 @@ fun ModalOverlay(
 
 enum class AppColor { GREEN, RED, YELLOW }
 
-fun getAppColor(color: AppColor, isColorblind: Boolean): Color = when (color) {
-    AppColor.GREEN -> if (isColorblind) Color(0xFF7F7F7F) else Color( color = 0xFF4CAF50)
-    AppColor.RED -> if (isColorblind) Color(0xFF111111) else Color( color = 0xFFF44336)
-    AppColor.YELLOW -> if (isColorblind) Color(0xFFBBBBBB) else Color( color = 0xFFFFEB3B)
+fun getAppColor(color: AppColor, isBlackWhiteMode: Boolean): Color = when (color) {
+    AppColor.GREEN -> if (isBlackWhiteMode) Color(0xFF7F7F7F) else Color( color = 0xFF4CAF50)
+    AppColor.RED -> if (isBlackWhiteMode) Color(0xFF111111) else Color( color = 0xFFF44336)
+    AppColor.YELLOW -> if (isBlackWhiteMode) Color(0xFFBBBBBB) else Color( color = 0xFFFFEB3B)
 }
 
-fun getConnColor(connState: ConnState, isColorblind: Boolean) = when (connState) {
-    ConnState.CONNECTED -> getAppColor(AppColor.GREEN, isColorblind)
-    ConnState.CONNECTING -> getAppColor(AppColor.YELLOW, isColorblind)
-    ConnState.DISCONNECTED -> getAppColor(AppColor.RED, isColorblind)
+fun getConnColor(connState: ConnState, isBlackWhiteMode: Boolean) = when (connState) {
+    ConnState.CONNECTED -> getAppColor(AppColor.GREEN, isBlackWhiteMode)
+    ConnState.CONNECTING -> getAppColor(AppColor.YELLOW, isBlackWhiteMode)
+    ConnState.DISCONNECTED -> getAppColor(AppColor.RED, isBlackWhiteMode)
 }
 
 fun formatTime(timestamp: Long): String {
