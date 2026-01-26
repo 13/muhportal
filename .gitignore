@@ -13,3 +13,29 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Flutter/Dart/Pub related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.lock
+pubspec.lock
+
+# Web related
+lib/generated_plugin_registrant.dart
+
+# Android Studio
+.idea/
+
+# IntelliJ related
+*.iws
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
