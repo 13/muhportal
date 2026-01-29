@@ -73,7 +73,7 @@ fun TitleBar(
             val text = "MUUUH!"
             for (i in 1..text.length) {
                 visibleLettersCount = i
-                delay(150) // Interval for each letter appearance
+                delay(50) // Interval for each letter appearance
             }
             delay(EASTER_EGG_DISPLAY_DURATION_MS)
             showEasterEgg = false
