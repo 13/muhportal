@@ -29,7 +29,7 @@ val LocalOverlayHost = compositionLocalOf<MutableState<(@Composable () -> Unit)?
 }
 
 // Easter egg constants
-private const val EASTER_EGG_TAP_COUNT = 7
+private const val EASTER_EGG_TAP_COUNT = 3
 private const val EASTER_EGG_RESET_DELAY_MS = 2000L
 private const val EASTER_EGG_DISPLAY_DURATION_MS = 3000L
 
@@ -43,8 +43,9 @@ fun TitleBar(
     onOpenSettings: () -> Unit
 ) {
     // Easter egg state
-    var tapCount by remember { mutableStateOf(0) }
+    var tapCount by remember { mutableIntStateOf(0) }
     var showEasterEgg by remember { mutableStateOf(false) }
+    var visibleLettersCount by remember { mutableIntStateOf(0) }
     
     // Slide-in animation for cow emoji (from left)
     val slideOffset by animateFloatAsState(
@@ -64,12 +65,20 @@ fun TitleBar(
         }
     }
     
-    // Auto-reset easter egg after display duration
+    // Auto-reset easter egg after display duration + sequential letter appearance
     LaunchedEffect(showEasterEgg) {
         if (showEasterEgg) {
+            visibleLettersCount = 0
+            delay(600) // Wait for cow to slide in
+            val text = "MUUUH!"
+            for (i in 1..text.length) {
+                visibleLettersCount = i
+                delay(150) // Interval for each letter appearance
+            }
             delay(EASTER_EGG_DISPLAY_DURATION_MS)
             showEasterEgg = false
             tapCount = 0
+            visibleLettersCount = 0
         }
     }
     
@@ -103,7 +112,7 @@ fun TitleBar(
             )
             Spacer(modifier = Modifier.width(32.dp))
             
-            // Easter egg cow emoji and text
+            // Easter egg cow emoji and text that appears one letter at a time
             if (showEasterEgg) {
                 Text(
                     text = "🐄",
@@ -116,7 +125,7 @@ fun TitleBar(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "MUUUH!",
+                    text = "MUUUH!".take(visibleLettersCount),
                     fontSize = 24.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
