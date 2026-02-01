@@ -1,6 +1,6 @@
 # <img src="assets/muhportalicon.png" width="30" height="30" /> MuhPortal
 
-An Android application built with Kotlin to monitor and control various portals (doors and locks) via MQTT over WebSockets.
+A cross-platform application built with Flutter to monitor and control various portals (doors and locks) via MQTT over WebSockets.
 
 ## Features
 
@@ -10,6 +10,7 @@ An Android application built with Kotlin to monitor and control various portals 
     - Automatic reconnection logic.
     - Visual connection status bar (Green for connected, Red for disconnected).
  - **Payload Parsing**: Extracts door states and original timestamps from MQTT messages.
+- **Cross-Platform**: Runs on web, Android, iOS, desktop (Windows, macOS, Linux).
 
 ## Screenshots
 
@@ -21,11 +22,11 @@ An Android application built with Kotlin to monitor and control various portals 
 
 ## Technical Specifications
 
-- **Language**: Kotlin / Java
-- **Build System**: Gradle
-- **Library**: Eclipse Paho MQTT Client
+- **Framework**: Flutter (Dart)
+- **MQTT Library**: mqtt_client
+- **Storage**: shared_preferences
 - **Protocol**: MQTT over WebSockets (`ws://192.168.22.5:1884`)
-- **IDE**: Android Studio Otter 3 Feature Drop
+- **IDE**: VS Code, Android Studio, or IntelliJ IDEA with Flutter plugin
 
 ## MQTT Architecture
 
@@ -53,6 +54,73 @@ Portal updates are received as JSON and mapped to the `PortalUpdate` data class:
 
 ## Installation
 
-1. Open the project in Android Studio.
-2. Ensure the MQTT broker is accessible at the configured URI.
-3. Build and run the application on a Linux-based environment or Android device.
+### Prerequisites
+- Flutter SDK (3.0.0 or higher)
+- Dart SDK
+- For web: Any modern web browser
+- For mobile: Android SDK or Xcode (for iOS)
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/13/muhportal.git
+   cd muhportal
+   ```
+
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
+
+3. Ensure the MQTT broker is accessible at the configured URI (`ws://192.168.22.5:1884`).
+
+4. Run the application:
+   
+   **For Web:**
+   ```bash
+   flutter run -d chrome
+   ```
+   
+   **For Android:**
+   ```bash
+   flutter run -d android
+   ```
+   
+   **For iOS:**
+   ```bash
+   flutter run -d ios
+   ```
+   
+   **For Desktop:**
+   ```bash
+   flutter run -d windows  # or macos, linux
+   ```
+
+### Building for Production
+
+**Web:**
+```bash
+flutter build web
+```
+
+**Android APK:**
+```bash
+flutter build apk
+```
+
+**iOS:**
+```bash
+flutter build ios
+```
+
+## Migration Note
+
+This app has been ported from Kotlin/Android to Flutter for cross-platform support. The original Android/Kotlin code is preserved in the `app/` directory for reference.
+
+**Current structure:**
+- `lib/` - Flutter application code (Dart)
+- `app/` - Original Android application code (Kotlin) - preserved for reference
+- `web/` - Flutter web support files
+
+Both implementations are functional and can coexist in the same repository.
