@@ -1,4 +1,4 @@
-# <img src="assets/muhportalicon.png" width="30" height="30" /> MuhPortal
+# <img src="assets/muhportal.png" width="30" height="30" /> MuhPortal
 
 An Android application built with Kotlin to monitor and control various portals (doors and locks) via MQTT over WebSockets.
 
