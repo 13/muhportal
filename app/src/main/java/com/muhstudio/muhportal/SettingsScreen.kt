@@ -1,5 +1,6 @@
 package com.muhstudio.muhportal
 
+import android.widget.ImageView
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -9,8 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,10 +32,20 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showClearDialog by remember { mutableStateOf(false) }
 
-    val versionName = remember(context) {
+    val packageInfo = remember(context) {
         try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+            context.packageManager.getPackageInfo(context.packageName, 0)
         } catch (_: Exception) {
+            null
+        }
+    }
+
+    val versionName = packageInfo?.versionName ?: "Unknown"
+    val buildDate = remember(packageInfo) {
+        if (packageInfo != null) {
+            SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                .format(Date(packageInfo.lastUpdateTime))
+        } else {
             "Unknown"
         }
     }
@@ -98,9 +115,49 @@ fun SettingsScreen(
                 Text("Clear Local Cache")
             }
             
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
             
-            Text("Version $versionName", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        ImageView(ctx).apply {
+                            setImageDrawable(ctx.packageManager.getApplicationIcon(ctx.packageName))
+                        }
+                    },
+                    modifier = Modifier.size(80.dp)
+                )
+
+                Text(
+                    text = stringResource(id = R.string.app_name),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Monitor and control various portals (doors and locks) via MQTT over WebSockets",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "Version $versionName",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Build Date: $buildDate",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 
