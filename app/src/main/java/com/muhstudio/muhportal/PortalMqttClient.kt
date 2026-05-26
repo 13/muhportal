@@ -57,8 +57,42 @@ data class EnergyUpdate(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class MqttConnectionConfig(
+    val serverUri: String = "ws://192.168.22.5:1884",
+    val username: String = "",
+    val password: String = ""
+)
+
+data class HADeviceConfig(
+    val tempSensorId: String = "B327",
+    val pvId: String = "E07000055917",
+    val energyId: String = "tasmota_5FF8B2",
+    val kommerSensorId: String = "87",
+    val kommerSwitchId: String = "tasmota_BDC5E0",
+    val brennerSensor1Id: String = "DS18B20-3628FF",
+    val brennerSensor2Id: String = "DS18B20-1C16E1",
+    val brennerSwitchId: String = "tasmota_A7EEA3"
+)
+
+data class MqttTopicConfig(
+    val portalSub: String = "muh/portal/+/json",
+    val wolSub: String = "muh/pc/+",
+    val sensorsSub: String = "muh/sensors/#",
+    val wstSub: String = "muh/wst/data/+",
+    val pvSub: String = "muh/pv/+/json",
+    val tasmotaStateSub: String = "tasmota/tele/+/STATE",
+    val tasmotaSensorSub: String = "tasmota/tele/+/SENSOR",
+    val tasmotaResultSub: String = "tasmota/stat/+/RESULT",
+    val portalCmndPub: String = "muh/portal/RLY/cmnd",
+    val wolWakePub: String = "muh/wol",
+    val wolShutdownPub: String = "muh/poweroff",
+    val tasmotaCmndPub: String = "tasmota/cmnd/{id}/POWER"
+)
+
 class GarageMqttClient(
     context: Context,
+    var connectionConfig: MqttConnectionConfig = MqttConnectionConfig(),
+    var config: MqttTopicConfig = MqttTopicConfig(),
     private val onConnState: (ConnState) -> Unit,
     private val onPortalUpdate: (PortalUpdate) -> Unit,
     private val onWolUpdate: (WolUpdate) -> Unit,
@@ -67,18 +101,15 @@ class GarageMqttClient(
     private val onPvUpdate: (PvUpdate) -> Unit,
     private val onEnergyUpdate: (EnergyUpdate) -> Unit,
 ) {
-    private val serverUri = "ws://192.168.22.5:1884"
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
     private val persistence = MemoryPersistence()
-    private val client = MqttAsyncClient(serverUri, clientId, persistence)
+    private var client = MqttAsyncClient(connectionConfig.serverUri, clientId, persistence)
 
-    private val portalTopicPrefix = "muh/portal/"
-    private val wolTopicPrefix = "muh/pc/"
-    private val portalTopicSuffix = "/json"
-    
-    private val topicToggleTopic = "muh/portal/RLY/cmnd"
-    private val wolWakeTopic = "muh/wol"
-    private val wolShutdownTopic = "muh/poweroff"
+    private fun topicPrefix(topic: String): String =
+        topic.substringBefore("+").substringBefore("#")
+
+    private fun topicSuffix(topic: String): String =
+        if (topic.contains("+")) topic.substringAfter("+") else ""
 
     fun connect() {
         if (client.isConnected) return
@@ -89,14 +120,14 @@ class GarageMqttClient(
             override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                 onConnState(ConnState.CONNECTED)
                 try {
-                    client.subscribe("muh/portal/+/json", 0)
-                    client.subscribe("muh/pc/+", 0)
-                    client.subscribe("muh/sensors/#", 0)
-                    client.subscribe("muh/wst/data/+", 0)
-                    client.subscribe("muh/pv/+/json", 0)
-                    client.subscribe("tasmota/tele/+/STATE", 0)
-                    client.subscribe("tasmota/tele/+/SENSOR", 0)
-                    client.subscribe("tasmota/stat/+/RESULT", 0)
+                    client.subscribe(config.portalSub, 0)
+                    client.subscribe(config.wolSub, 0)
+                    client.subscribe(config.sensorsSub, 0)
+                    client.subscribe(config.wstSub, 0)
+                    client.subscribe(config.pvSub, 0)
+                    client.subscribe(config.tasmotaStateSub, 0)
+                    client.subscribe(config.tasmotaSensorSub, 0)
+                    client.subscribe(config.tasmotaResultSub, 0)
                 } catch (e: MqttException) {
                     e.printStackTrace()
                 }
@@ -109,37 +140,47 @@ class GarageMqttClient(
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 if (topic != null && message != null) {
                     val payload = message.payload.toString(StandardCharsets.UTF_8)
+                    val portalPrefix = topicPrefix(config.portalSub)
+                    val portalSuffix = topicSuffix(config.portalSub)
+                    val wolPrefix = topicPrefix(config.wolSub)
+                    val sensorsPrefix = topicPrefix(config.sensorsSub)
+                    val wstPrefix = topicPrefix(config.wstSub)
+                    val pvPrefix = topicPrefix(config.pvSub)
+                    val pvSuffix = topicSuffix(config.pvSub)
+                    val tasmotaSensorSuffix = topicSuffix(config.tasmotaSensorSub)
+                    val tasmotaTelePrefix = topicPrefix(config.tasmotaStateSub)
+                    val tasmotaStatPrefix = topicPrefix(config.tasmotaResultSub)
                     when {
-                        topic.startsWith(portalTopicPrefix) -> {
-                            val key = topic.removePrefix(portalTopicPrefix).removeSuffix(portalTopicSuffix)
+                        topic.startsWith(portalPrefix) -> {
+                            val key = topic.removePrefix(portalPrefix).removeSuffix(portalSuffix)
                             parsePortalUpdate(key, payload)?.let { onPortalUpdate(it) }
                         }
-                        topic.startsWith(wolTopicPrefix) -> {
-                            val key = topic.removePrefix(wolTopicPrefix)
+                        topic.startsWith(wolPrefix) -> {
+                            val key = topic.removePrefix(wolPrefix)
                             if (key != "cmnd") {
                                 parseWolUpdate(key, payload)?.let { onWolUpdate(it) }
                             }
                         }
-                        topic.startsWith("muh/sensors/") -> {
+                        topic.startsWith(sensorsPrefix) -> {
                             val parts = topic.split("/")
                             if (parts.size >= 3) {
                                 val id = if (parts.last() == "json") parts[parts.size - 2] else parts.last()
                                 parseSensorUpdate(id, payload)?.let { onSensorUpdate(it) }
                             }
                         }
-                        topic.startsWith("muh/wst/data/") -> {
-                            val id = topic.removePrefix("muh/wst/data/")
+                        topic.startsWith(wstPrefix) -> {
+                            val id = topic.removePrefix(wstPrefix)
                             parseWstUpdate(id, payload)?.let { onSensorUpdate(it) }
                         }
-                        topic.startsWith("muh/pv/") -> {
-                            val id = topic.removePrefix("muh/pv/").removeSuffix("/json")
+                        topic.startsWith(pvPrefix) -> {
+                            val id = topic.removePrefix(pvPrefix).removeSuffix(pvSuffix)
                             parsePvUpdate(id, payload)?.let { onPvUpdate(it) }
                         }
-                        topic.endsWith("/SENSOR") -> {
+                        tasmotaSensorSuffix.isNotEmpty() && topic.endsWith(tasmotaSensorSuffix) -> {
                             val key = topic.split("/")[2]
                             parseEnergyUpdate(key, payload)?.let { onEnergyUpdate(it) }
                         }
-                        topic.startsWith("tasmota/tele/") || topic.startsWith("tasmota/stat/") -> {
+                        topic.startsWith(tasmotaTelePrefix) || topic.startsWith(tasmotaStatPrefix) -> {
                             val key = topic.split("/")[2]
                             parseTasmotaUpdate(key, payload)?.let { onSwitchUpdate(it) }
                         }
@@ -155,6 +196,10 @@ class GarageMqttClient(
             isCleanSession = true
             connectionTimeout = 10
             keepAliveInterval = 60
+            if (connectionConfig.username.isNotEmpty()) {
+                userName = connectionConfig.username
+                password = connectionConfig.password.toCharArray()
+            }
         }
 
         try {
@@ -186,6 +231,7 @@ class GarageMqttClient(
                     client.disconnect().waitForCompletion(2000)
                 }
             } catch (_: Throwable) {}
+            client = MqttAsyncClient(connectionConfig.serverUri, clientId, persistence)
             connect()
         }.start()
     }
@@ -194,7 +240,7 @@ class GarageMqttClient(
         if (!client.isConnected) return
         val msg = MqttMessage(command.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
         try {
-            client.publish(topicToggleTopic, msg)
+            client.publish(config.portalCmndPub, msg)
         } catch (e: MqttException) {
             e.printStackTrace()
         }
@@ -202,7 +248,7 @@ class GarageMqttClient(
 
     fun wolAction(mac: String, action: String) {
         if (!client.isConnected) return
-        val topic = if (action == "WAKE") wolWakeTopic else wolShutdownTopic
+        val topic = if (action == "WAKE") config.wolWakePub else config.wolShutdownPub
         val payload = org.json.JSONObject().apply { put("mac", mac) }.toString()
         val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
         try {
@@ -214,7 +260,7 @@ class GarageMqttClient(
 
     fun setPower(deviceId: String, state: Boolean) {
         if (!client.isConnected) return
-        val topic = "tasmota/cmnd/$deviceId/POWER"
+        val topic = config.tasmotaCmndPub.replace("{id}", deviceId)
         val payload = if (state) "1" else "0"
         val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
         try {

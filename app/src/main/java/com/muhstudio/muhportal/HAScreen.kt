@@ -25,6 +25,7 @@ fun HAScreen(
     switchStates: Map<String, SwitchUpdate>,
     pvStates: Map<String, PvUpdate>,
     energyStates: Map<String, EnergyUpdate>,
+    deviceConfig: HADeviceConfig,
     onSwitchAction: (String, Boolean) -> Unit,
     onRefresh: () -> Unit,
     isBlackWhiteMode: Boolean,
@@ -68,7 +69,7 @@ fun HAScreen(
                 contentPadding = PaddingValues(16.dp)
             ) {
                 item {
-                    val sensor = sensorStates["B327"]
+                    val sensor = sensorStates[deviceConfig.tempSensorId]
                     
                     HASection(
                         title = "Temperatur",
@@ -82,7 +83,7 @@ fun HAScreen(
                     HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
                 }
                 item {
-                    val pv = pvStates["E07000055917"]
+                    val pv = pvStates[deviceConfig.pvId]
                     HASection(
                         title = "PV",
                         value1 = pv?.let { "%.0f W".format(it.p1 + it.p2) },
@@ -94,7 +95,7 @@ fun HAScreen(
                     )
                 }
                 item {
-                    val pv = pvStates["E07000055917"]
+                    val pv = pvStates[deviceConfig.pvId]
                     HASection(
                         title = "PV Produktion",
                         value1 = pv?.let { "%.1f kWh".format(java.util.Locale.US, it.e1 + it.e2) },
@@ -108,8 +109,8 @@ fun HAScreen(
                 }
                 
                 item {
-                    val energy = energyStates["tasmota_5FF8B2"]
-                    val pv = pvStates["E07000055917"]
+                    val energy = energyStates[deviceConfig.energyId]
+                    val pv = pvStates[deviceConfig.pvId]
                     
                     Column(modifier = Modifier.fillMaxWidth()) {
                         HASection(
@@ -159,29 +160,29 @@ fun HAScreen(
                 }
                 
                 item {
-                    val sensor = sensorStates["87"]
-                    val sw = switchStates["tasmota_BDC5E0"]
-                    
+                    val sensor = sensorStates[deviceConfig.kommerSensorId]
+                    val sw = switchStates[deviceConfig.kommerSwitchId]
+
                     HASection(
                         title = "Kommer",
                         value1 = sensor?.temp?.let { "%.1f°".format(java.util.Locale.US,it) },
                         value2 = sensor?.humidity?.let { "%.0f%%".format(it) },
                         switchState = sw?.state ?: false,
-                        onSwitchChange = { onSwitchAction("tasmota_BDC5E0", it) },
+                        onSwitchChange = { onSwitchAction(deviceConfig.kommerSwitchId, it) },
                         isBlackWhiteMode = isBlackWhiteMode
                     )
                 }
                 item {
-                    val s1 = sensorStates["DS18B20-3628FF"]
-                    val s2 = sensorStates["DS18B20-1C16E1"]
-                    val sw = switchStates["tasmota_A7EEA3"]
+                    val s1 = sensorStates[deviceConfig.brennerSensor1Id]
+                    val s2 = sensorStates[deviceConfig.brennerSensor2Id]
+                    val sw = switchStates[deviceConfig.brennerSwitchId]
 
                     HASection(
                         title = "Brenner",
                         value1 = s1?.temp?.let { "%.0f°".format(it) },
                         value2 = s2?.temp?.let { "%.0f°".format(it) },
                         switchState = sw?.state ?: false,
-                        onSwitchChange = { onSwitchAction("tasmota_A7EEA3", it) },
+                        onSwitchChange = { onSwitchAction(deviceConfig.brennerSwitchId, it) },
                         isBlackWhiteMode = isBlackWhiteMode
                     )
                 }

@@ -30,6 +30,88 @@ import com.muhstudio.muhportal.ui.theme.MuhportalTheme
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+private fun loadHADeviceConfig(context: Context): HADeviceConfig {
+    val prefs = context.getSharedPreferences("ha_devices", Context.MODE_PRIVATE)
+    val defaults = HADeviceConfig()
+    return HADeviceConfig(
+        tempSensorId = prefs.getString("temp_sensor_id", defaults.tempSensorId)!!,
+        pvId = prefs.getString("pv_id", defaults.pvId)!!,
+        energyId = prefs.getString("energy_id", defaults.energyId)!!,
+        kommerSensorId = prefs.getString("kommer_sensor_id", defaults.kommerSensorId)!!,
+        kommerSwitchId = prefs.getString("kommer_switch_id", defaults.kommerSwitchId)!!,
+        brennerSensor1Id = prefs.getString("brenner_sensor1_id", defaults.brennerSensor1Id)!!,
+        brennerSensor2Id = prefs.getString("brenner_sensor2_id", defaults.brennerSensor2Id)!!,
+        brennerSwitchId = prefs.getString("brenner_switch_id", defaults.brennerSwitchId)!!
+    )
+}
+
+private fun saveHADeviceConfig(context: Context, config: HADeviceConfig) {
+    context.getSharedPreferences("ha_devices", Context.MODE_PRIVATE).edit().apply {
+        putString("temp_sensor_id", config.tempSensorId)
+        putString("pv_id", config.pvId)
+        putString("energy_id", config.energyId)
+        putString("kommer_sensor_id", config.kommerSensorId)
+        putString("kommer_switch_id", config.kommerSwitchId)
+        putString("brenner_sensor1_id", config.brennerSensor1Id)
+        putString("brenner_sensor2_id", config.brennerSensor2Id)
+        putString("brenner_switch_id", config.brennerSwitchId)
+    }.apply()
+}
+
+private fun loadMqttConnectionConfig(context: Context): MqttConnectionConfig {
+    val prefs = context.getSharedPreferences("mqtt_connection", Context.MODE_PRIVATE)
+    val defaults = MqttConnectionConfig()
+    return MqttConnectionConfig(
+        serverUri = prefs.getString("server_uri", defaults.serverUri)!!,
+        username = prefs.getString("username", defaults.username)!!,
+        password = prefs.getString("password", defaults.password)!!
+    )
+}
+
+private fun saveMqttConnectionConfig(context: Context, config: MqttConnectionConfig) {
+    context.getSharedPreferences("mqtt_connection", Context.MODE_PRIVATE).edit().apply {
+        putString("server_uri", config.serverUri)
+        putString("username", config.username)
+        putString("password", config.password)
+    }.apply()
+}
+
+private fun loadMqttTopicConfig(context: Context): MqttTopicConfig {
+    val prefs = context.getSharedPreferences("mqtt_topics", Context.MODE_PRIVATE)
+    val defaults = MqttTopicConfig()
+    return MqttTopicConfig(
+        portalSub = prefs.getString("portal_sub", defaults.portalSub)!!,
+        wolSub = prefs.getString("wol_sub", defaults.wolSub)!!,
+        sensorsSub = prefs.getString("sensors_sub", defaults.sensorsSub)!!,
+        wstSub = prefs.getString("wst_sub", defaults.wstSub)!!,
+        pvSub = prefs.getString("pv_sub", defaults.pvSub)!!,
+        tasmotaStateSub = prefs.getString("tasmota_state_sub", defaults.tasmotaStateSub)!!,
+        tasmotaSensorSub = prefs.getString("tasmota_sensor_sub", defaults.tasmotaSensorSub)!!,
+        tasmotaResultSub = prefs.getString("tasmota_result_sub", defaults.tasmotaResultSub)!!,
+        portalCmndPub = prefs.getString("portal_cmnd_pub", defaults.portalCmndPub)!!,
+        wolWakePub = prefs.getString("wol_wake_pub", defaults.wolWakePub)!!,
+        wolShutdownPub = prefs.getString("wol_shutdown_pub", defaults.wolShutdownPub)!!,
+        tasmotaCmndPub = prefs.getString("tasmota_cmnd_pub", defaults.tasmotaCmndPub)!!
+    )
+}
+
+private fun saveMqttTopicConfig(context: Context, config: MqttTopicConfig) {
+    context.getSharedPreferences("mqtt_topics", Context.MODE_PRIVATE).edit().apply {
+        putString("portal_sub", config.portalSub)
+        putString("wol_sub", config.wolSub)
+        putString("sensors_sub", config.sensorsSub)
+        putString("wst_sub", config.wstSub)
+        putString("pv_sub", config.pvSub)
+        putString("tasmota_state_sub", config.tasmotaStateSub)
+        putString("tasmota_sensor_sub", config.tasmotaSensorSub)
+        putString("tasmota_result_sub", config.tasmotaResultSub)
+        putString("portal_cmnd_pub", config.portalCmndPub)
+        putString("wol_wake_pub", config.wolWakePub)
+        putString("wol_shutdown_pub", config.wolShutdownPub)
+        putString("tasmota_cmnd_pub", config.tasmotaCmndPub)
+    }.apply()
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,6 +214,9 @@ fun MainContent(
     val energyStates = remember { mutableStateMapOf<String, EnergyUpdate>() }
 
     var showSettings by remember { mutableStateOf(false) }
+    var connectionConfig by remember { mutableStateOf(loadMqttConnectionConfig(context)) }
+    var topicConfig by remember { mutableStateOf(loadMqttTopicConfig(context)) }
+    var haDeviceConfig by remember { mutableStateOf(loadHADeviceConfig(context)) }
 
     // Clear Cache Helper
     val clearCache: () -> Unit = {
@@ -304,6 +389,48 @@ fun MainContent(
         cachePrefs.edit().putString("energy", json.toString()).apply()
     }
 
+    var connState by remember { mutableStateOf(ConnState.DISCONNECTED) }
+
+    val mqtt = remember {
+        GarageMqttClient(
+            context = context,
+            connectionConfig = connectionConfig,
+            config = topicConfig,
+            onConnState = { connState = it },
+            onPortalUpdate = { portalStates[it.id] = it; savePortal() },
+            onWolUpdate = { wolStates[it.id] = it; saveWol() },
+            onSensorUpdate = { sensorStates[it.id] = it; saveSensors() },
+            onSwitchUpdate = { switchStates[it.id] = it; saveSwitches() },
+            onPvUpdate = { pvStates[it.id] = it; savePv() },
+            onEnergyUpdate = { energyStates[it.id] = it; saveEnergy() }
+        )
+    }
+
+    val isPreview = androidx.compose.ui.platform.LocalInspectionMode.current
+    DisposableEffect(Unit) {
+        if (!isPreview) mqtt.connect()
+        onDispose { if (!isPreview) mqtt.disconnect() }
+    }
+
+    val onHADeviceConfigChange: (HADeviceConfig) -> Unit = { newConfig ->
+        saveHADeviceConfig(context, newConfig)
+        haDeviceConfig = newConfig
+    }
+
+    val onConnectionChange: (MqttConnectionConfig) -> Unit = { newConfig ->
+        saveMqttConnectionConfig(context, newConfig)
+        mqtt.connectionConfig = newConfig
+        connectionConfig = newConfig
+        mqtt.reconnect()
+    }
+
+    val onTopicsChange: (MqttTopicConfig) -> Unit = { newConfig ->
+        saveMqttTopicConfig(context, newConfig)
+        mqtt.config = newConfig
+        topicConfig = newConfig
+        mqtt.reconnect()
+    }
+
     AnimatedContent(
         targetState = showSettings,
         transitionSpec = {
@@ -325,6 +452,12 @@ fun MainContent(
                 isBlackWhiteMode = isBlackWhiteMode,
                 onBlackWhiteModeChange = onBlackWhiteModeChange,
                 onClearCache = clearCache,
+                mqttConnection = connectionConfig,
+                onConnectionChange = onConnectionChange,
+                mqttTopics = topicConfig,
+                onTopicsChange = onTopicsChange,
+                haDevices = haDeviceConfig,
+                onHADevicesChange = onHADeviceConfigChange,
                 onBack = { showSettings = false }
             )
         } else {
@@ -393,27 +526,6 @@ fun MainContent(
                     }
                 }
             ) { innerPadding ->
-                var connState by remember { mutableStateOf(ConnState.DISCONNECTED) }
-
-                val mqtt = remember {
-                    GarageMqttClient(
-                        context = context,
-                        onConnState = { connState = it },
-                        onPortalUpdate = { portalStates[it.id] = it; savePortal() },
-                        onWolUpdate = { wolStates[it.id] = it; saveWol() },
-                        onSensorUpdate = { sensorStates[it.id] = it; saveSensors() },
-                        onSwitchUpdate = { switchStates[it.id] = it; saveSwitches() },
-                        onPvUpdate = { pvStates[it.id] = it; savePv() },
-                        onEnergyUpdate = { energyStates[it.id] = it; saveEnergy() }
-                    )
-                }
-
-                val isPreview = androidx.compose.ui.platform.LocalInspectionMode.current
-                DisposableEffect(Unit) {
-                    if (!isPreview) mqtt.connect()
-                    onDispose { if (!isPreview) mqtt.disconnect() }
-                }
-
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.padding(innerPadding).fillMaxSize()
@@ -443,6 +555,7 @@ fun MainContent(
                             switchStates = switchStates,
                             pvStates = pvStates,
                             energyStates = energyStates,
+                            deviceConfig = haDeviceConfig,
                             onSwitchAction = { id, state -> mqtt.setPower(id, state) },
                             onRefresh = { mqtt.reconnect() },
                             isBlackWhiteMode = isBlackWhiteMode,
