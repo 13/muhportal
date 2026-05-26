@@ -226,12 +226,16 @@ class GarageMqttClient(
     fun reconnect() {
         onConnState(ConnState.CONNECTING)
         Thread {
+            val serverUriChanged = client.serverURI != connectionConfig.serverUri
             try {
                 if (client.isConnected) {
                     client.disconnect().waitForCompletion(2000)
                 }
+                if (serverUriChanged) client.close()
             } catch (_: Throwable) {}
-            client = MqttAsyncClient(connectionConfig.serverUri, clientId, persistence)
+            if (serverUriChanged) {
+                client = MqttAsyncClient(connectionConfig.serverUri, clientId, persistence)
+            }
             connect()
         }.start()
     }
