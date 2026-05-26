@@ -71,7 +71,13 @@ data class HADeviceConfig(
     val kommerSwitchId: String = "tasmota_BDC5E0",
     val brennerSensor1Id: String = "DS18B20-3628FF",
     val brennerSensor2Id: String = "DS18B20-1C16E1",
-    val brennerSwitchId: String = "tasmota_A7EEA3"
+    val brennerSwitchId: String = "tasmota_A7EEA3",
+    val sensorTempKey: String = "T_SI",
+    val sensorDs18b20Key: String = "DS18B20",
+    val sensorDs18b20TempKey: String = "Temperature",
+    val sensorHumidityKey: String = "H_SI",
+    val wstTempKey: String = "temp_c",
+    val wstHumidityKey: String = "humidity"
 )
 
 data class MqttTopicConfig(
@@ -93,6 +99,7 @@ class GarageMqttClient(
     context: Context,
     var connectionConfig: MqttConnectionConfig = MqttConnectionConfig(),
     var config: MqttTopicConfig = MqttTopicConfig(),
+    var haDeviceConfig: HADeviceConfig = HADeviceConfig(),
     private val onConnState: (ConnState) -> Unit,
     private val onPortalUpdate: (PortalUpdate) -> Unit,
     private val onWolUpdate: (WolUpdate) -> Unit,
@@ -310,11 +317,11 @@ class GarageMqttClient(
         return try {
             val json = org.json.JSONObject(jsonStr)
             val temp = when {
-                json.has("T1") -> json.getDouble("T1").toFloat()
-                json.has("DS18B20") -> json.getJSONObject("DS18B20").getDouble("Temperature").toFloat()
+                json.has(haDeviceConfig.sensorTempKey) -> json.getDouble(haDeviceConfig.sensorTempKey).toFloat()
+                json.has(haDeviceConfig.sensorDs18b20Key) -> json.getJSONObject(haDeviceConfig.sensorDs18b20Key).getDouble(haDeviceConfig.sensorDs18b20TempKey).toFloat()
                 else -> return null
             }
-            val humidity = if (json.has("H1")) json.getDouble("H1").toFloat() else 0f
+            val humidity = if (json.has(haDeviceConfig.sensorHumidityKey)) json.getDouble(haDeviceConfig.sensorHumidityKey).toFloat() else 0f
             SensorUpdate(
                 id = key,
                 temp = temp,
@@ -329,8 +336,8 @@ class GarageMqttClient(
     private fun parseWstUpdate(key: String, jsonStr: String): SensorUpdate? {
         return try {
             val json = org.json.JSONObject(jsonStr)
-            val temp = if (json.has("temp_c")) json.getDouble("temp_c").toFloat() else return null
-            val humidity = if (json.has("humidity")) json.getDouble("humidity").toFloat() else 0f
+            val temp = if (json.has(haDeviceConfig.wstTempKey)) json.getDouble(haDeviceConfig.wstTempKey).toFloat() else return null
+            val humidity = if (json.has(haDeviceConfig.wstHumidityKey)) json.getDouble(haDeviceConfig.wstHumidityKey).toFloat() else 0f
             SensorUpdate(
                 id = key,
                 temp = temp,

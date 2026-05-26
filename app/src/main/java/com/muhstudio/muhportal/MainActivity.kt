@@ -41,7 +41,13 @@ private fun loadHADeviceConfig(context: Context): HADeviceConfig {
         kommerSwitchId = prefs.getString("kommer_switch_id", defaults.kommerSwitchId)!!,
         brennerSensor1Id = prefs.getString("brenner_sensor1_id", defaults.brennerSensor1Id)!!,
         brennerSensor2Id = prefs.getString("brenner_sensor2_id", defaults.brennerSensor2Id)!!,
-        brennerSwitchId = prefs.getString("brenner_switch_id", defaults.brennerSwitchId)!!
+        brennerSwitchId = prefs.getString("brenner_switch_id", defaults.brennerSwitchId)!!,
+        sensorTempKey = prefs.getString("sensor_temp_key", defaults.sensorTempKey)!!,
+        sensorDs18b20Key = prefs.getString("sensor_ds18b20_key", defaults.sensorDs18b20Key)!!,
+        sensorDs18b20TempKey = prefs.getString("sensor_ds18b20_temp_key", defaults.sensorDs18b20TempKey)!!,
+        sensorHumidityKey = prefs.getString("sensor_humidity_key", defaults.sensorHumidityKey)!!,
+        wstTempKey = prefs.getString("wst_temp_key", defaults.wstTempKey)!!,
+        wstHumidityKey = prefs.getString("wst_humidity_key", defaults.wstHumidityKey)!!
     )
 }
 
@@ -55,6 +61,12 @@ private fun saveHADeviceConfig(context: Context, config: HADeviceConfig) {
         putString("brenner_sensor1_id", config.brennerSensor1Id)
         putString("brenner_sensor2_id", config.brennerSensor2Id)
         putString("brenner_switch_id", config.brennerSwitchId)
+        putString("sensor_temp_key", config.sensorTempKey)
+        putString("sensor_ds18b20_key", config.sensorDs18b20Key)
+        putString("sensor_ds18b20_temp_key", config.sensorDs18b20TempKey)
+        putString("sensor_humidity_key", config.sensorHumidityKey)
+        putString("wst_temp_key", config.wstTempKey)
+        putString("wst_humidity_key", config.wstHumidityKey)
     }.apply()
 }
 
@@ -396,6 +408,7 @@ fun MainContent(
             context = context,
             connectionConfig = connectionConfig,
             config = topicConfig,
+            haDeviceConfig = haDeviceConfig,
             onConnState = { connState = it },
             onPortalUpdate = { portalStates[it.id] = it; savePortal() },
             onWolUpdate = { wolStates[it.id] = it; saveWol() },
@@ -414,6 +427,7 @@ fun MainContent(
 
     val onHADeviceConfigChange: (HADeviceConfig) -> Unit = { newConfig ->
         saveHADeviceConfig(context, newConfig)
+        mqtt.haDeviceConfig = newConfig
         haDeviceConfig = newConfig
     }
 

@@ -63,6 +63,12 @@ fun SettingsScreen(
     var editBrennerSensor1Id by remember(haDevices) { mutableStateOf(haDevices.brennerSensor1Id) }
     var editBrennerSensor2Id by remember(haDevices) { mutableStateOf(haDevices.brennerSensor2Id) }
     var editBrennerSwitchId by remember(haDevices) { mutableStateOf(haDevices.brennerSwitchId) }
+    var editSensorTempKey by remember(haDevices) { mutableStateOf(haDevices.sensorTempKey) }
+    var editSensorDs18b20Key by remember(haDevices) { mutableStateOf(haDevices.sensorDs18b20Key) }
+    var editSensorDs18b20TempKey by remember(haDevices) { mutableStateOf(haDevices.sensorDs18b20TempKey) }
+    var editSensorHumidityKey by remember(haDevices) { mutableStateOf(haDevices.sensorHumidityKey) }
+    var editWstTempKey by remember(haDevices) { mutableStateOf(haDevices.wstTempKey) }
+    var editWstHumidityKey by remember(haDevices) { mutableStateOf(haDevices.wstHumidityKey) }
 
     var editPortalSub by remember(mqttTopics) { mutableStateOf(mqttTopics.portalSub) }
     var editWolSub by remember(mqttTopics) { mutableStateOf(mqttTopics.wolSub) }
@@ -289,6 +295,22 @@ fun SettingsScreen(
                 OutlinedTextField(value = editBrennerSwitchId, onValueChange = { editBrennerSwitchId = it },
                     label = { Text("Switch ID") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
+                FieldGroupLabel("Sensor JSON keys")
+                OutlinedTextField(value = editSensorTempKey, onValueChange = { editSensorTempKey = it },
+                    label = { Text("Temperature key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editSensorHumidityKey, onValueChange = { editSensorHumidityKey = it },
+                    label = { Text("Humidity key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editSensorDs18b20Key, onValueChange = { editSensorDs18b20Key = it },
+                    label = { Text("DS18B20 object key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editSensorDs18b20TempKey, onValueChange = { editSensorDs18b20TempKey = it },
+                    label = { Text("DS18B20 temperature field") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                FieldGroupLabel("Weather station JSON keys")
+                OutlinedTextField(value = editWstTempKey, onValueChange = { editWstTempKey = it },
+                    label = { Text("Temperature key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editWstHumidityKey, onValueChange = { editWstHumidityKey = it },
+                    label = { Text("Humidity key") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
                 SaveResetRow(
                     onReset = {
                         val d = HADeviceConfig()
@@ -296,13 +318,21 @@ fun SettingsScreen(
                         editKommerSensorId = d.kommerSensorId; editKommerSwitchId = d.kommerSwitchId
                         editBrennerSensor1Id = d.brennerSensor1Id; editBrennerSensor2Id = d.brennerSensor2Id
                         editBrennerSwitchId = d.brennerSwitchId
+                        editSensorTempKey = d.sensorTempKey; editSensorDs18b20Key = d.sensorDs18b20Key
+                        editSensorDs18b20TempKey = d.sensorDs18b20TempKey
+                        editSensorHumidityKey = d.sensorHumidityKey
+                        editWstTempKey = d.wstTempKey; editWstHumidityKey = d.wstHumidityKey
                     },
                     onSave = {
                         onHADevicesChange(HADeviceConfig(
                             tempSensorId = editTempSensorId, pvId = editPvId, energyId = editEnergyId,
                             kommerSensorId = editKommerSensorId, kommerSwitchId = editKommerSwitchId,
                             brennerSensor1Id = editBrennerSensor1Id, brennerSensor2Id = editBrennerSensor2Id,
-                            brennerSwitchId = editBrennerSwitchId
+                            brennerSwitchId = editBrennerSwitchId,
+                            sensorTempKey = editSensorTempKey, sensorDs18b20Key = editSensorDs18b20Key,
+                            sensorDs18b20TempKey = editSensorDs18b20TempKey,
+                            sensorHumidityKey = editSensorHumidityKey,
+                            wstTempKey = editWstTempKey, wstHumidityKey = editWstHumidityKey
                         ))
                     }
                 )
