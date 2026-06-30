@@ -106,7 +106,12 @@ private fun loadMqttTopicConfig(context: Context): MqttTopicConfig {
         tasmotaCmndPub = prefs.getString("tasmota_cmnd_pub", defaults.tasmotaCmndPub)!!,
         alarmStateSub = prefs.getString("alarm_state_sub", defaults.alarmStateSub)!!,
         alarmAlertSub = prefs.getString("alarm_alert_sub", defaults.alarmAlertSub)!!,
-        alarmSetPub = prefs.getString("alarm_set_pub", defaults.alarmSetPub)!!
+        alarmSetPub = prefs.getString("alarm_set_pub", defaults.alarmSetPub)!!,
+        awaySimStatusSub = prefs.getString("away_sim_status_sub", defaults.awaySimStatusSub)!!,
+        awaySimManualSetPub = prefs.getString("away_sim_manual_set_pub", defaults.awaySimManualSetPub)!!,
+        awaySimScheduleEnablePub = prefs.getString("away_sim_schedule_enable_pub", defaults.awaySimScheduleEnablePub)!!,
+        awaySimScheduleStartPub = prefs.getString("away_sim_schedule_start_pub", defaults.awaySimScheduleStartPub)!!,
+        awaySimScheduleEndPub = prefs.getString("away_sim_schedule_end_pub", defaults.awaySimScheduleEndPub)!!
     )
 }
 
@@ -127,6 +132,11 @@ private fun saveMqttTopicConfig(context: Context, config: MqttTopicConfig) {
         putString("alarm_state_sub", config.alarmStateSub)
         putString("alarm_alert_sub", config.alarmAlertSub)
         putString("alarm_set_pub", config.alarmSetPub)
+        putString("away_sim_status_sub", config.awaySimStatusSub)
+        putString("away_sim_manual_set_pub", config.awaySimManualSetPub)
+        putString("away_sim_schedule_enable_pub", config.awaySimScheduleEnablePub)
+        putString("away_sim_schedule_start_pub", config.awaySimScheduleStartPub)
+        putString("away_sim_schedule_end_pub", config.awaySimScheduleEndPub)
     }.apply()
 }
 
@@ -232,6 +242,10 @@ fun MainContent(
     val energyStates = remember { mutableStateMapOf<String, EnergyUpdate>() }
     var alarmState by remember { mutableStateOf<AlarmState?>(null) }
     val alarmAlerts = remember { mutableStateListOf<AlarmAlert>() }
+    var awaySimManualActive by remember { mutableStateOf(false) }
+    var awaySimScheduleEnabled by remember { mutableStateOf(false) }
+    var awaySimScheduleStart by remember { mutableStateOf("22:00") }
+    var awaySimScheduleEnd by remember { mutableStateOf("06:00") }
 
     var showSettings by remember { mutableStateOf(false) }
     var connectionConfig by remember { mutableStateOf(loadMqttConnectionConfig(context)) }
@@ -429,6 +443,12 @@ fun MainContent(
             onAlarmAlert = { alert ->
                 alarmAlerts.add(0, alert)
                 if (alarmAlerts.size > 50) alarmAlerts.removeRange(50, alarmAlerts.size)
+            },
+            onAwaySimUpdate = { sim ->
+                awaySimManualActive = sim.manual_active
+                awaySimScheduleEnabled = sim.schedule_enabled
+                awaySimScheduleStart = sim.schedule_start
+                awaySimScheduleEnd = sim.schedule_end
             }
         )
     }
@@ -590,7 +610,15 @@ fun MainContent(
                             onOpenSettings = { showSettings = true },
                             alarmState = alarmState,
                             alarmAlerts = alarmAlerts,
-                            onAlarmSet = { mqtt.setAlarm(it) }
+                            onAlarmSet = { mqtt.setAlarm(it) },
+                            awaySimManualActive = awaySimManualActive,
+                            awaySimScheduleEnabled = awaySimScheduleEnabled,
+                            awaySimScheduleStart = awaySimScheduleStart,
+                            awaySimScheduleEnd = awaySimScheduleEnd,
+                            onAwaySimManualSet = { mqtt.setAwaySimManual(it) },
+                            onAwaySimScheduleSet = { mqtt.setAwaySimScheduleEnabled(it) },
+                            onAwaySimScheduleStart = { mqtt.setAwaySimScheduleStart(it) },
+                            onAwaySimScheduleEnd = { mqtt.setAwaySimScheduleEnd(it) }
                         )
                     }
                 }

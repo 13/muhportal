@@ -20,6 +20,16 @@ data class AlarmAlert(
     val ts: Long = System.currentTimeMillis()
 )
 
+data class AwaySim(
+    val active: Boolean,
+    val manual_active: Boolean,
+    val schedule_enabled: Boolean,
+    val schedule_active: Boolean,
+    val schedule_start: String,
+    val schedule_end: String,
+    val current_pool_light: String?
+)
+
 data class PortalUpdate(
     val id: String,
     val state: DoorState,
@@ -104,7 +114,12 @@ data class MqttTopicConfig(
     val tasmotaCmndPub: String = "tasmota/cmnd/{id}/POWER",
     val alarmStateSub: String = "muh/alarm/state",
     val alarmAlertSub: String = "muh/alarm/alert",
-    val alarmSetPub: String = "muh/alarm/set"
+    val alarmSetPub: String = "muh/alarm/set",
+    val awaySimStatusSub: String = "muh/awaysim/status",
+    val awaySimManualSetPub: String = "muh/awaysim/manual/set",
+    val awaySimScheduleEnablePub: String = "muh/awaysim/schedule/set",
+    val awaySimScheduleStartPub: String = "muh/awaysim/schedule/start/set",
+    val awaySimScheduleEndPub: String = "muh/awaysim/schedule/end/set"
 )
 
 class GarageMqttClient(
@@ -121,6 +136,7 @@ class GarageMqttClient(
     private val onEnergyUpdate: (EnergyUpdate) -> Unit,
     private val onAlarmStateUpdate: (AlarmState) -> Unit = {},
     private val onAlarmAlert: (AlarmAlert) -> Unit = {},
+    private val onAwaySimUpdate: (AwaySim) -> Unit = {},
 ) {
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
     private val persistence = MemoryPersistence()
@@ -151,6 +167,7 @@ class GarageMqttClient(
                     client.subscribe(config.tasmotaResultSub, 0)
                     client.subscribe(config.alarmStateSub, 1)
                     client.subscribe(config.alarmAlertSub, 1)
+                    client.subscribe(config.awaySimStatusSub, 1)
                 } catch (e: MqttException) {
                     e.printStackTrace()
                 }
@@ -180,6 +197,9 @@ class GarageMqttClient(
                         }
                         topic == config.alarmAlertSub -> {
                             parseAlarmAlert(payload)?.let { onAlarmAlert(it) }
+                        }
+                        topic == config.awaySimStatusSub -> {
+                            parseAwaySim(payload)?.let { onAwaySimUpdate(it) }
                         }
                         topic.startsWith(portalPrefix) -> {
                             val key = topic.removePrefix(portalPrefix).removeSuffix(portalSuffix)
@@ -300,6 +320,60 @@ class GarageMqttClient(
         }
         try {
             client.publish(config.alarmSetPub, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setAwaySimManual(active: Boolean) {
+        if (!client.isConnected) return
+        val payload = if (active) "ON" else "OFF"
+        val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply {
+            qos = 1
+            isRetained = false
+        }
+        try {
+            client.publish(config.awaySimManualSetPub, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setAwaySimScheduleEnabled(enabled: Boolean) {
+        if (!client.isConnected) return
+        val payload = if (enabled) "ON" else "OFF"
+        val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply {
+            qos = 1
+            isRetained = false
+        }
+        try {
+            client.publish(config.awaySimScheduleEnablePub, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setAwaySimScheduleStart(time: String) {
+        if (!client.isConnected) return
+        val msg = MqttMessage(time.toByteArray(StandardCharsets.UTF_8)).apply {
+            qos = 1
+            isRetained = false
+        }
+        try {
+            client.publish(config.awaySimScheduleStartPub, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setAwaySimScheduleEnd(time: String) {
+        if (!client.isConnected) return
+        val msg = MqttMessage(time.toByteArray(StandardCharsets.UTF_8)).apply {
+            qos = 1
+            isRetained = false
+        }
+        try {
+            client.publish(config.awaySimScheduleEndPub, msg)
         } catch (e: MqttException) {
             e.printStackTrace()
         }
@@ -442,6 +516,23 @@ class GarageMqttClient(
             if (jsonStr == "0" || jsonStr == "1") {
                 SwitchUpdate(key, jsonStr == "1", System.currentTimeMillis())
             } else null
+        }
+    }
+
+    private fun parseAwaySim(jsonStr: String): AwaySim? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            AwaySim(
+                active = json.optBoolean("active", false),
+                manual_active = json.optBoolean("manual_active", false),
+                schedule_enabled = json.optBoolean("schedule_enabled", false),
+                schedule_active = json.optBoolean("schedule_active", false),
+                schedule_start = json.optString("schedule_start", "22:00"),
+                schedule_end = json.optString("schedule_end", "06:00"),
+                current_pool_light = json.optString("current_pool_light", "").takeIf { it.isNotEmpty() }
+            )
+        } catch (e: Exception) {
+            null
         }
     }
 

@@ -1,6 +1,7 @@
 package com.muhstudio.muhportal
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -36,6 +37,14 @@ fun HAScreen(
     alarmState: AlarmState? = null,
     alarmAlerts: List<AlarmAlert> = emptyList(),
     onAlarmSet: (AlarmState) -> Unit = {},
+    awaySimManualActive: Boolean = false,
+    awaySimScheduleEnabled: Boolean = false,
+    awaySimScheduleStart: String = "22:00",
+    awaySimScheduleEnd: String = "06:00",
+    onAwaySimManualSet: (Boolean) -> Unit = {},
+    onAwaySimScheduleSet: (Boolean) -> Unit = {},
+    onAwaySimScheduleStart: (String) -> Unit = {},
+    onAwaySimScheduleEnd: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isRefreshing by remember { mutableStateOf(false) }
@@ -201,6 +210,20 @@ fun HAScreen(
                         isBlackWhiteMode = isBlackWhiteMode
                     )
                 }
+                item {
+                    HorizontalDivider(modifier = Modifier.padding(bottom = 24.dp))
+                    AwaySimSection(
+                        manualActive = awaySimManualActive,
+                        scheduleEnabled = awaySimScheduleEnabled,
+                        scheduleStart = awaySimScheduleStart,
+                        scheduleEnd = awaySimScheduleEnd,
+                        onManualSet = onAwaySimManualSet,
+                        onScheduleSet = onAwaySimScheduleSet,
+                        onScheduleStart = onAwaySimScheduleStart,
+                        onScheduleEnd = onAwaySimScheduleEnd,
+                        isBlackWhiteMode = isBlackWhiteMode
+                    )
+                }
             }
         }
     }
@@ -300,6 +323,113 @@ private fun AlarmSection(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AwaySimSection(
+    manualActive: Boolean,
+    scheduleEnabled: Boolean,
+    scheduleStart: String,
+    scheduleEnd: String,
+    onManualSet: (Boolean) -> Unit,
+    onScheduleSet: (Boolean) -> Unit,
+    onScheduleStart: (String) -> Unit,
+    onScheduleEnd: (String) -> Unit,
+    isBlackWhiteMode: Boolean
+) {
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        AlarmRow(
+            title = "Away Sim",
+            checked = manualActive,
+            isBlackWhiteMode = isBlackWhiteMode,
+            activeColor = AppColor.GREEN,
+            onCheckedChange = onManualSet
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = "Away Schedule", fontSize = 24.sp, color = Color.Gray)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = scheduleStart,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { showStartPicker = true }
+                    )
+                    Text(
+                        text = " – ",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = scheduleEnd,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable { showEndPicker = true }
+                    )
+                }
+            }
+            Switch(
+                checked = scheduleEnabled,
+                onCheckedChange = onScheduleSet,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = getAppColor(AppColor.GREEN, isBlackWhiteMode),
+                    checkedTrackColor = getAppColor(AppColor.GREEN, isBlackWhiteMode).copy(alpha = 0.5f)
+                )
+            )
+        }
+    }
+
+    if (showStartPicker) {
+        val parts = scheduleStart.split(":")
+        val h = parts.getOrNull(0)?.toIntOrNull() ?: 22
+        val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val state = rememberTimePickerState(initialHour = h, initialMinute = m, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showStartPicker = false },
+            title = { Text("Start Time") },
+            text = { TimeInput(state = state) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onScheduleStart("%02d:%02d".format(state.hour, state.minute))
+                    showStartPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartPicker = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showEndPicker) {
+        val parts = scheduleEnd.split(":")
+        val h = parts.getOrNull(0)?.toIntOrNull() ?: 6
+        val m = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val state = rememberTimePickerState(initialHour = h, initialMinute = m, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showEndPicker = false },
+            title = { Text("End Time") },
+            text = { TimeInput(state = state) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onScheduleEnd("%02d:%02d".format(state.hour, state.minute))
+                    showEndPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndPicker = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 

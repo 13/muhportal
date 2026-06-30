@@ -85,6 +85,11 @@ fun SettingsScreen(
     var editAlarmStateSub by remember(mqttTopics) { mutableStateOf(mqttTopics.alarmStateSub) }
     var editAlarmAlertSub by remember(mqttTopics) { mutableStateOf(mqttTopics.alarmAlertSub) }
     var editAlarmSetPub by remember(mqttTopics) { mutableStateOf(mqttTopics.alarmSetPub) }
+    var editAwaySimStatusSub by remember(mqttTopics) { mutableStateOf(mqttTopics.awaySimStatusSub) }
+    var editAwaySimManualSetPub by remember(mqttTopics) { mutableStateOf(mqttTopics.awaySimManualSetPub) }
+    var editAwaySimScheduleEnablePub by remember(mqttTopics) { mutableStateOf(mqttTopics.awaySimScheduleEnablePub) }
+    var editAwaySimScheduleStartPub by remember(mqttTopics) { mutableStateOf(mqttTopics.awaySimScheduleStartPub) }
+    var editAwaySimScheduleEndPub by remember(mqttTopics) { mutableStateOf(mqttTopics.awaySimScheduleEndPub) }
 
     val packageInfo = remember(context) {
         try { context.packageManager.getPackageInfo(context.packageName, 0) } catch (_: Exception) { null }
@@ -253,6 +258,18 @@ fun SettingsScreen(
                 OutlinedTextField(value = editAlarmSetPub, onValueChange = { editAlarmSetPub = it },
                     label = { Text("Alarm Set (pub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
 
+                FieldGroupLabel("Away Sim")
+                OutlinedTextField(value = editAwaySimStatusSub, onValueChange = { editAwaySimStatusSub = it },
+                    label = { Text("Away Sim Status (sub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editAwaySimManualSetPub, onValueChange = { editAwaySimManualSetPub = it },
+                    label = { Text("Away Sim Manual Set (pub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editAwaySimScheduleEnablePub, onValueChange = { editAwaySimScheduleEnablePub = it },
+                    label = { Text("Away Sim Schedule Enable (pub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editAwaySimScheduleStartPub, onValueChange = { editAwaySimScheduleStartPub = it },
+                    label = { Text("Away Sim Schedule Start (pub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editAwaySimScheduleEndPub, onValueChange = { editAwaySimScheduleEndPub = it },
+                    label = { Text("Away Sim Schedule End (pub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
                 SaveResetRow(
                     onReset = {
                         val d = MqttTopicConfig()
@@ -264,6 +281,11 @@ fun SettingsScreen(
                         editTasmotaCmndPub = d.tasmotaCmndPub
                         editAlarmStateSub = d.alarmStateSub; editAlarmAlertSub = d.alarmAlertSub
                         editAlarmSetPub = d.alarmSetPub
+                        editAwaySimStatusSub = d.awaySimStatusSub
+                        editAwaySimManualSetPub = d.awaySimManualSetPub
+                        editAwaySimScheduleEnablePub = d.awaySimScheduleEnablePub
+                        editAwaySimScheduleStartPub = d.awaySimScheduleStartPub
+                        editAwaySimScheduleEndPub = d.awaySimScheduleEndPub
                     },
                     onSave = {
                         onTopicsChange(MqttTopicConfig(
@@ -274,7 +296,12 @@ fun SettingsScreen(
                             wolWakePub = editWolWakePub, wolShutdownPub = editWolShutdownPub,
                             tasmotaCmndPub = editTasmotaCmndPub,
                             alarmStateSub = editAlarmStateSub, alarmAlertSub = editAlarmAlertSub,
-                            alarmSetPub = editAlarmSetPub
+                            alarmSetPub = editAlarmSetPub,
+                            awaySimStatusSub = editAwaySimStatusSub,
+                            awaySimManualSetPub = editAwaySimManualSetPub,
+                            awaySimScheduleEnablePub = editAwaySimScheduleEnablePub,
+                            awaySimScheduleStartPub = editAwaySimScheduleStartPub,
+                            awaySimScheduleEndPub = editAwaySimScheduleEndPub
                         ))
                     },
                     saveLabel = "Save & Reconnect"
