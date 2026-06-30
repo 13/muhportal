@@ -10,6 +10,15 @@ import java.util.UUID
 
 enum class DoorState { OPEN, CLOSED, UNKNOWN }
 enum class ConnState { CONNECTING, CONNECTED, DISCONNECTED }
+enum class AlarmState { ARM_AWAY, ARM_HOME, DISARM }
+
+data class AlarmAlert(
+    val device: String,
+    val label: String,
+    val alarmState: String,
+    val time: String,
+    val ts: Long = System.currentTimeMillis()
+)
 
 data class PortalUpdate(
     val id: String,
@@ -92,7 +101,10 @@ data class MqttTopicConfig(
     val portalCmndPub: String = "muh/portal/RLY/cmnd",
     val wolWakePub: String = "muh/wol",
     val wolShutdownPub: String = "muh/poweroff",
-    val tasmotaCmndPub: String = "tasmota/cmnd/{id}/POWER"
+    val tasmotaCmndPub: String = "tasmota/cmnd/{id}/POWER",
+    val alarmStateSub: String = "muh/alarm/state",
+    val alarmAlertSub: String = "muh/alarm/alert",
+    val alarmSetPub: String = "muh/alarm/set"
 )
 
 class GarageMqttClient(
@@ -107,6 +119,8 @@ class GarageMqttClient(
     private val onSwitchUpdate: (SwitchUpdate) -> Unit,
     private val onPvUpdate: (PvUpdate) -> Unit,
     private val onEnergyUpdate: (EnergyUpdate) -> Unit,
+    private val onAlarmStateUpdate: (AlarmState) -> Unit = {},
+    private val onAlarmAlert: (AlarmAlert) -> Unit = {},
 ) {
     private val clientId = "muhportal-" + UUID.randomUUID().toString()
     private val persistence = MemoryPersistence()
@@ -135,6 +149,8 @@ class GarageMqttClient(
                     client.subscribe(config.tasmotaStateSub, 0)
                     client.subscribe(config.tasmotaSensorSub, 0)
                     client.subscribe(config.tasmotaResultSub, 0)
+                    client.subscribe(config.alarmStateSub, 1)
+                    client.subscribe(config.alarmAlertSub, 1)
                 } catch (e: MqttException) {
                     e.printStackTrace()
                 }
@@ -158,6 +174,13 @@ class GarageMqttClient(
                     val tasmotaTelePrefix = topicPrefix(config.tasmotaStateSub)
                     val tasmotaStatPrefix = topicPrefix(config.tasmotaResultSub)
                     when {
+                        topic == config.alarmStateSub -> {
+                            AlarmState.entries.firstOrNull { it.name == payload }
+                                ?.let { onAlarmStateUpdate(it) }
+                        }
+                        topic == config.alarmAlertSub -> {
+                            parseAlarmAlert(payload)?.let { onAlarmAlert(it) }
+                        }
                         topic.startsWith(portalPrefix) -> {
                             val key = topic.removePrefix(portalPrefix).removeSuffix(portalSuffix)
                             parsePortalUpdate(key, payload)?.let { onPortalUpdate(it) }
@@ -264,6 +287,19 @@ class GarageMqttClient(
         val msg = MqttMessage(payload.toByteArray(StandardCharsets.UTF_8)).apply { qos = 0 }
         try {
             client.publish(topic, msg)
+        } catch (e: MqttException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setAlarm(state: AlarmState) {
+        if (!client.isConnected) return
+        val msg = MqttMessage(state.name.toByteArray(StandardCharsets.UTF_8)).apply {
+            qos = 1
+            isRetained = false
+        }
+        try {
+            client.publish(config.alarmSetPub, msg)
         } catch (e: MqttException) {
             e.printStackTrace()
         }
@@ -406,6 +442,21 @@ class GarageMqttClient(
             if (jsonStr == "0" || jsonStr == "1") {
                 SwitchUpdate(key, jsonStr == "1", System.currentTimeMillis())
             } else null
+        }
+    }
+
+    private fun parseAlarmAlert(jsonStr: String): AlarmAlert? {
+        return try {
+            val json = org.json.JSONObject(jsonStr)
+            AlarmAlert(
+                device = json.optString("device", ""),
+                label = json.optString("label", ""),
+                alarmState = json.optString("alarmState", ""),
+                time = json.optString("time", ""),
+                ts = tryParseTime(json) ?: System.currentTimeMillis()
+            )
+        } catch (e: Exception) {
+            null
         }
     }
 

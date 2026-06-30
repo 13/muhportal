@@ -208,12 +208,13 @@ fun ModalOverlay(
     }
 }
 
-enum class AppColor { GREEN, RED, YELLOW }
+enum class AppColor { GREEN, RED, YELLOW, ORANGE }
 
 fun getAppColor(color: AppColor, isBlackWhiteMode: Boolean): Color = when (color) {
-    AppColor.GREEN -> if (isBlackWhiteMode) Color(0xFF7F7F7F) else Color( color = 0xFF4CAF50)
-    AppColor.RED -> if (isBlackWhiteMode) Color(0xFF111111) else Color( color = 0xFFF44336)
-    AppColor.YELLOW -> if (isBlackWhiteMode) Color(0xFFBBBBBB) else Color( color = 0xFFFFEB3B)
+    AppColor.GREEN -> if (isBlackWhiteMode) Color(0xFF7F7F7F) else Color(color = 0xFF4CAF50)
+    AppColor.RED -> if (isBlackWhiteMode) Color(0xFF111111) else Color(color = 0xFFF44336)
+    AppColor.YELLOW -> if (isBlackWhiteMode) Color(0xFFBBBBBB) else Color(color = 0xFFFFEB3B)
+    AppColor.ORANGE -> if (isBlackWhiteMode) Color(0xFF555555) else Color(color = 0xFFFF9800)
 }
 
 fun getConnColor(connState: ConnState, isBlackWhiteMode: Boolean) = when (connState) {

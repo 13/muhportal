@@ -82,6 +82,9 @@ fun SettingsScreen(
     var editWolWakePub by remember(mqttTopics) { mutableStateOf(mqttTopics.wolWakePub) }
     var editWolShutdownPub by remember(mqttTopics) { mutableStateOf(mqttTopics.wolShutdownPub) }
     var editTasmotaCmndPub by remember(mqttTopics) { mutableStateOf(mqttTopics.tasmotaCmndPub) }
+    var editAlarmStateSub by remember(mqttTopics) { mutableStateOf(mqttTopics.alarmStateSub) }
+    var editAlarmAlertSub by remember(mqttTopics) { mutableStateOf(mqttTopics.alarmAlertSub) }
+    var editAlarmSetPub by remember(mqttTopics) { mutableStateOf(mqttTopics.alarmSetPub) }
 
     val packageInfo = remember(context) {
         try { context.packageManager.getPackageInfo(context.packageName, 0) } catch (_: Exception) { null }
@@ -242,6 +245,14 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
+                FieldGroupLabel("Alarm")
+                OutlinedTextField(value = editAlarmStateSub, onValueChange = { editAlarmStateSub = it },
+                    label = { Text("Alarm State (sub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editAlarmAlertSub, onValueChange = { editAlarmAlertSub = it },
+                    label = { Text("Alarm Alert (sub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = editAlarmSetPub, onValueChange = { editAlarmSetPub = it },
+                    label = { Text("Alarm Set (pub)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+
                 SaveResetRow(
                     onReset = {
                         val d = MqttTopicConfig()
@@ -251,6 +262,8 @@ fun SettingsScreen(
                         editTasmotaResultSub = d.tasmotaResultSub; editPortalCmndPub = d.portalCmndPub
                         editWolWakePub = d.wolWakePub; editWolShutdownPub = d.wolShutdownPub
                         editTasmotaCmndPub = d.tasmotaCmndPub
+                        editAlarmStateSub = d.alarmStateSub; editAlarmAlertSub = d.alarmAlertSub
+                        editAlarmSetPub = d.alarmSetPub
                     },
                     onSave = {
                         onTopicsChange(MqttTopicConfig(
@@ -259,7 +272,9 @@ fun SettingsScreen(
                             tasmotaStateSub = editTasmotaStateSub, tasmotaSensorSub = editTasmotaSensorSub,
                             tasmotaResultSub = editTasmotaResultSub, portalCmndPub = editPortalCmndPub,
                             wolWakePub = editWolWakePub, wolShutdownPub = editWolShutdownPub,
-                            tasmotaCmndPub = editTasmotaCmndPub
+                            tasmotaCmndPub = editTasmotaCmndPub,
+                            alarmStateSub = editAlarmStateSub, alarmAlertSub = editAlarmAlertSub,
+                            alarmSetPub = editAlarmSetPub
                         ))
                     },
                     saveLabel = "Save & Reconnect"

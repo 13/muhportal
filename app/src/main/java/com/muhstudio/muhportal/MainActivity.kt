@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.muhstudio.muhportal.ui.theme.MuhportalTheme
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -103,7 +104,10 @@ private fun loadMqttTopicConfig(context: Context): MqttTopicConfig {
         portalCmndPub = prefs.getString("portal_cmnd_pub", defaults.portalCmndPub)!!,
         wolWakePub = prefs.getString("wol_wake_pub", defaults.wolWakePub)!!,
         wolShutdownPub = prefs.getString("wol_shutdown_pub", defaults.wolShutdownPub)!!,
-        tasmotaCmndPub = prefs.getString("tasmota_cmnd_pub", defaults.tasmotaCmndPub)!!
+        tasmotaCmndPub = prefs.getString("tasmota_cmnd_pub", defaults.tasmotaCmndPub)!!,
+        alarmStateSub = prefs.getString("alarm_state_sub", defaults.alarmStateSub)!!,
+        alarmAlertSub = prefs.getString("alarm_alert_sub", defaults.alarmAlertSub)!!,
+        alarmSetPub = prefs.getString("alarm_set_pub", defaults.alarmSetPub)!!
     )
 }
 
@@ -121,6 +125,9 @@ private fun saveMqttTopicConfig(context: Context, config: MqttTopicConfig) {
         putString("wol_wake_pub", config.wolWakePub)
         putString("wol_shutdown_pub", config.wolShutdownPub)
         putString("tasmota_cmnd_pub", config.tasmotaCmndPub)
+        putString("alarm_state_sub", config.alarmStateSub)
+        putString("alarm_alert_sub", config.alarmAlertSub)
+        putString("alarm_set_pub", config.alarmSetPub)
     }.apply()
 }
 
@@ -224,6 +231,8 @@ fun MainContent(
     val switchStates = remember { mutableStateMapOf<String, SwitchUpdate>() }
     val pvStates = remember { mutableStateMapOf<String, PvUpdate>() }
     val energyStates = remember { mutableStateMapOf<String, EnergyUpdate>() }
+    var alarmState by remember { mutableStateOf<AlarmState?>(null) }
+    val alarmAlerts = remember { mutableStateListOf<AlarmAlert>() }
 
     var showSettings by remember { mutableStateOf(false) }
     var connectionConfig by remember { mutableStateOf(loadMqttConnectionConfig(context)) }
@@ -239,6 +248,7 @@ fun MainContent(
         switchStates.clear()
         pvStates.clear()
         energyStates.clear()
+        alarmAlerts.clear()
         scope.launch {
             snackbarHostState.showSnackbar("Cache cleared")
         }
@@ -415,7 +425,12 @@ fun MainContent(
             onSensorUpdate = { sensorStates[it.id] = it; saveSensors() },
             onSwitchUpdate = { switchStates[it.id] = it; saveSwitches() },
             onPvUpdate = { pvStates[it.id] = it; savePv() },
-            onEnergyUpdate = { energyStates[it.id] = it; saveEnergy() }
+            onEnergyUpdate = { energyStates[it.id] = it; saveEnergy() },
+            onAlarmStateUpdate = { alarmState = it },
+            onAlarmAlert = { alert ->
+                alarmAlerts.add(0, alert)
+                if (alarmAlerts.size > 50) alarmAlerts.removeRange(50, alarmAlerts.size)
+            }
         )
     }
 
@@ -573,7 +588,10 @@ fun MainContent(
                             onSwitchAction = { id, state -> mqtt.setPower(id, state) },
                             onRefresh = { mqtt.reconnect() },
                             isBlackWhiteMode = isBlackWhiteMode,
-                            onOpenSettings = { showSettings = true }
+                            onOpenSettings = { showSettings = true },
+                            alarmState = alarmState,
+                            alarmAlerts = alarmAlerts,
+                            onAlarmSet = { mqtt.setAlarm(it) }
                         )
                     }
                 }
