@@ -17,9 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -263,8 +260,9 @@ private fun AlarmSection(
     onAlarmSet: (AlarmState) -> Unit,
     isBlackWhiteMode: Boolean
 ) {
-    val armed  = alarmState == AlarmState.ARM_AWAY || alarmState == AlarmState.ARM_HOME
-    val atHome = alarmState == AlarmState.ARM_HOME
+    var localAlarmState by remember(alarmState) { mutableStateOf(alarmState) }
+    val armed  = localAlarmState == AlarmState.ARM_AWAY || localAlarmState == AlarmState.ARM_HOME
+    val atHome = localAlarmState == AlarmState.ARM_HOME
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AlarmRow(
@@ -273,7 +271,9 @@ private fun AlarmSection(
             isBlackWhiteMode = isBlackWhiteMode,
             activeColor = AppColor.RED
         ) { on ->
-            onAlarmSet(if (on) AlarmState.ARM_AWAY else AlarmState.DISARM)
+            val next = if (on) AlarmState.ARM_AWAY else AlarmState.DISARM
+            localAlarmState = next
+            onAlarmSet(next)
         }
         AlarmRow(
             title = "Alarm @Home",
@@ -281,45 +281,9 @@ private fun AlarmSection(
             isBlackWhiteMode = isBlackWhiteMode,
             activeColor = AppColor.ORANGE
         ) { on ->
-            onAlarmSet(if (on) AlarmState.ARM_HOME else if (armed) AlarmState.ARM_AWAY else AlarmState.DISARM)
-        }
-
-        if (alarmAlerts.isNotEmpty()) {
-            Text(
-                text = "Alerts",
-                fontSize = 14.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            alarmAlerts.take(10).forEach { alert ->
-                val ts = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(alert.ts))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = alert.label.ifEmpty { alert.device },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = alert.alarmState,
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                    }
-                    Text(
-                        text = alert.time.ifEmpty { ts },
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                }
-            }
+            val next = if (on) AlarmState.ARM_HOME else if (armed) AlarmState.ARM_AWAY else AlarmState.DISARM
+            localAlarmState = next
+            onAlarmSet(next)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -339,16 +303,21 @@ private fun AwaySimSection(
     onScheduleEnd: (String) -> Unit,
     isBlackWhiteMode: Boolean
 ) {
+    var localManualActive by remember(manualActive) { mutableStateOf(manualActive) }
+    var localScheduleEnabled by remember(scheduleEnabled) { mutableStateOf(scheduleEnabled) }
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         AlarmRow(
             title = "Away Sim",
-            checked = manualActive,
+            checked = localManualActive,
             isBlackWhiteMode = isBlackWhiteMode,
             activeColor = AppColor.GREEN,
-            onCheckedChange = onManualSet
+            onCheckedChange = {
+                localManualActive = it
+                onManualSet(it)
+            }
         )
         Row(
             modifier = Modifier
@@ -380,8 +349,11 @@ private fun AwaySimSection(
                 }
             }
             Switch(
-                checked = scheduleEnabled,
-                onCheckedChange = onScheduleSet,
+                checked = localScheduleEnabled,
+                onCheckedChange = {
+                    localScheduleEnabled = it
+                    onScheduleSet(it)
+                },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = getAppColor(AppColor.GREEN, isBlackWhiteMode),
                     checkedTrackColor = getAppColor(AppColor.GREEN, isBlackWhiteMode).copy(alpha = 0.5f)
@@ -443,6 +415,8 @@ private fun HASection(
     isBlackWhiteMode: Boolean,
     showSwitch: Boolean = true
 ) {
+    var localSwitchState by remember(switchState) { mutableStateOf(switchState) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -480,8 +454,11 @@ private fun HASection(
         if (showSwitch) {
             Spacer(modifier = Modifier.width(16.dp))
             Switch(
-                checked = switchState,
-                onCheckedChange = onSwitchChange,
+                checked = localSwitchState,
+                onCheckedChange = {
+                    localSwitchState = it
+                    onSwitchChange(it)
+                },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = getAppColor(AppColor.GREEN, isBlackWhiteMode),
                     checkedTrackColor = getAppColor(AppColor.GREEN, isBlackWhiteMode).copy(alpha = 0.5f)
